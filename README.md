@@ -75,4 +75,4 @@ func Main() {
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE)

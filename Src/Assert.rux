@@ -1,0 +1,21 @@
+/*
+    Rux standard library
+    Copyright © 2026 Ivan Muzyka
+    Licensed under the MIT License
+*/
+
+module Std {
+    import Std::Io::Print;
+    import Windows::ExitProcess;
+
+    func Assert(condition: bool, message: char8[], file: char8[] = #file, function: char8[] = #function,
+        line: uint = #line, column: uint = #column) {
+        if !condition {
+            let output = String::From("Assertion failed: ") + String::From(message) + "\n--> " +
+               String::From(file) + ":" + Format("{}", line) + ":" + Format("{}", column) +
+               "\n    in function " + String::From(function) + "\n";
+            Print(output);
+            ExitProcess(2);
+        }
+    }
+}

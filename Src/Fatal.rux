@@ -1,0 +1,19 @@
+/*
+    Rux standard library
+    Copyright © 2026 Ivan Muzyka
+    Licensed under the MIT License
+*/
+
+module Std {
+    import Std::Io::Print;
+    import Windows::ExitProcess;
+
+    func Fatal(message: char8[], file: char8[] = #file, function: char8[] = #function,
+        line: uint = #line, column: uint = #column) {
+        let output = String::From("Fatal error: ") + String::From(message) + "\n--> " +
+            String::From(file) + ":" + Format("{}", line) + ":" + Format("{}", column) +
+            "\n    in function " + String::From(function) + "\n";
+        Print(output);
+        ExitProcess(1);
+    }
+}

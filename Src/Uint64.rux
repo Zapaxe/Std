@@ -5,8 +5,7 @@
 */
 
 module Std {
-    // TODO: fix negative numbers
-    func ToString(value: int64) -> String {
+    func ToString(value: uint64) -> String {
         if value == 0 {
             return String::From("0");
         }
@@ -21,7 +20,7 @@ module Std {
         return String::From(buf.data + index + 1, (buf.length - index - 1) as uint);
     } 
 
-    extend int64 : Display {
+    extend uint64 : Display {
         func ToString(self) -> String {            
             return ToString(*self);
         }

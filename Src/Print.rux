@@ -1,23 +1,39 @@
 /*
-    Rux Standard Library
+    Rux standard library
     Copyright © 2026 Ivan Muzyka
     Licensed under the MIT License
 */
 
 module Std::Io {
     import Windows::{ GetStdHandle, WriteConsoleW, MultiByteToWideChar };
-    
-    func Print(str: String) {
+    import Std::Display;
+
+    func Print(string: *const char8, length: uint) {
+        if length == 0 {
+            return;
+        }
+        if length > 4096 {
+            Fatal("string is too long to print");
+        }
         let stdOutputHandle = -11 as uint32;
         let utf8 = 65001u32;
         let handle = GetStdHandle(stdOutputHandle);
         var wideBuf: char16[4096];
-        let wideLen = MultiByteToWideChar(utf8, 0, str.data, str.length as int32, wideBuf.data, wideBuf.length as int32);
+        let wideLen = MultiByteToWideChar(utf8, 0, string, length as int32, wideBuf.data, wideBuf.length as int32);
         var written: uint32 = 0;
         WriteConsoleW(handle, wideBuf.data, wideLen as uint32, &written, null);
     }
 
+    func Print(string: char8[]) {
+        Print(string.data, string.length);
+    }
+
+    func Print(string: String) {
+        Print(string.data, string.length);
+    }
+
     func Print(format: char8[], args: Display...) {
-        //Print(Format(format, args));
+        let formatted = Format(format, args...);
+        Print(formatted.data, formatted.length);
     }
 }

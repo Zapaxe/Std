@@ -6,4 +6,4 @@ Description = "Rux standard library"
 Authors = ["Ivan Muzyka <musicvano@mail.com>"]
 
 [Dependencies]
-Windows = { Path = "../Windows" }
+Windows = "*"
