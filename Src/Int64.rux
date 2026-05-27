@@ -5,21 +5,30 @@
 */
 
 module Std {
-    // TODO: fix negative numbers
     func ToString(value: int64) -> String {
         if value == 0 {
             return String::From("0");
         }
         var buf: char8[256];
-        var temp = value;
+        var negative = value < 0;
+        var temp: int64;
+        if negative {
+            temp = -value;
+        } else {
+            temp = value;
+        }
         var index = buf.length - 1;
         while temp > 0 {
             buf[index] = (temp % 10 + c8'0') as char8;
             index--;
             temp /= 10;
         }
+        if negative {
+            buf[index] = c8'-';
+            index--;
+        }
         return String::From(buf.data + index + 1, (buf.length - index - 1) as uint);
-    } 
+    }
 
     extend int64 : Display {
         func ToString(self) -> String {            
