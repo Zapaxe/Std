@@ -1,0 +1,17 @@
+/*
+    Rux standard library
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+module Std {   
+    func ToString(value: float32) -> String {
+        return ToString(value as float64);
+    }
+
+    extend float32 : Display {
+        func ToString(self) -> String {
+            return ToString(*self);
+        }
+    }
+}

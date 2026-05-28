@@ -14,6 +14,78 @@ module Std::Io {
     };
     import Std::Display;
 
+    func Print(value: int8) {
+        Print(ToString(value));
+    }
+
+    func Print(value: int16) {
+        Print(ToString(value));
+    }
+
+    func Print(value: int32) {
+        Print(ToString(value));
+    }
+
+    func Print(value: int64) {
+        Print(ToString(value));
+    }
+
+    func Print(value: uint8) {
+        Print(ToString(value));
+    }
+
+    func Print(value: uint16) {
+        Print(ToString(value));
+    }
+
+    func Print(value: uint32) {
+        Print(ToString(value));
+    }
+
+    func Print(value: uint64) {
+        Print(ToString(value));
+    }
+
+    func Print(value: float32) {
+        Print(ToString(value));
+    }
+
+    func Print(value: float64) {
+        Print(ToString(value));
+    }
+
+    func Print(value: bool8) {
+        Print(ToString(value));
+    }
+
+    func Print(value: bool16) {
+        Print(ToString(value));
+    }
+
+    func Print(value: bool32) {
+        Print(ToString(value));
+    }
+
+    func Print(value: bool) {
+        Print(ToString(value));
+    }
+
+    func Print(value: char8) {
+        Print(ToString(value));
+    }
+
+    func Print(value: char16) {
+        Print(ToString(value));
+    }
+
+    func Print(value: char32) {
+        Print(ToString(value));
+    }
+
+    func Print(value: char) {
+        Print(ToString(value));
+    }
+
     func Print(string: *const char8, length: uint) {
         if length == 0 { return; }
         const MaxLength: uint = 4096;
@@ -52,6 +124,96 @@ module Std::Io {
         let handle = GetStdHandle(StdHandle::Output as uint32);
         let newline = c16"\n";
         WriteConsoleW(handle, newline.data, newline.length as uint32, null, null);
+    }
+
+    func PrintLine(value: int8) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: int16) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: int32) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: int64) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: uint8) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: uint16) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: uint32) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: uint64) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: float32) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: float64) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: bool8) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: bool16) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: bool32) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: bool) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: char8) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: char16) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: char32) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: char) {
+        Print(ToString(value));
+        PrintLine();
     }
 
     func PrintLine(string: *const char8, length: uint) {

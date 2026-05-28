@@ -28,6 +28,113 @@ module Std {
             buf[pos] = c8'-';
             pos++;
         }
+        // Scientific notation for values that overflow uint or lose fixed-point meaning.
+        var scientific = false;
+        if abs != 0.0 {
+            if abs >= 1000000000000000.0 {
+                scientific = true;
+            }
+            if abs < 0.0001 {
+                scientific = true;
+            }
+        }
+        if scientific {
+            var exp: int64 = 0;
+            var m = abs;
+            while m >= 10.0 {
+                m /= 10.0;
+                exp++;
+            }
+            while m < 1.0 {
+                m *= 10.0;
+                exp--;
+            }
+            var pow10 = 1.0;
+            if exp > 0 {
+                var pe = exp;
+                while pe > 0 {
+                    pow10 *= 10.0;
+                    pe--;
+                }
+                m = abs / pow10;
+            }
+            if exp < 0 {
+                var pe = -exp;
+                while pe > 0 {
+                    pow10 *= 10.0;
+                    pe--;
+                }
+                m = abs * pow10;
+            }
+            if m >= 10.0 {
+                m /= 10.0;
+                exp++;
+            }
+            if m < 1.0 {
+                m *= 10.0;
+                exp--;
+            }
+            let mInt = m as uint;
+            buf[pos] = (mInt + c8'0') as char8;
+            pos++;
+            buf[pos] = c8'.';
+            pos++;
+            var mFrac = m - mInt as float64;
+            var fi: uint = 0;
+            while fi < 16 {
+                mFrac = mFrac * 10.0;
+                let md = mFrac as uint;
+                buf[pos] = (md + c8'0') as char8;
+                pos++;
+                let mFracInt = mFrac as uint;
+                mFrac = mFrac - mFracInt as float64;
+                fi++;
+            }
+            buf[pos] = c8'e';
+            pos++;
+            if exp >= 0 {
+                buf[pos] = c8'+';
+                pos++;
+            } else {
+                buf[pos] = c8'-';
+                pos++;
+                exp = -exp;
+            }
+            var expBuf: char8[8];
+            var expLen: uint = 0;
+            let expAbs = exp as uint;
+            if expAbs == 0 {
+                expBuf[0] = c8'0';
+                expLen = 1;
+            } else {
+                var e = expAbs;
+                while e > 0 {
+                    expBuf[expLen] = (e % 10 + c8'0') as char8;
+                    expLen++;
+                    e /= 10;
+                }
+                var eleft: uint = 0;
+                var eright = expLen - 1;
+                while eleft < eright {
+                    let etmp = expBuf[eleft];
+                    expBuf[eleft] = expBuf[eright];
+                    expBuf[eright] = etmp;
+                    eleft++;
+                    eright--;
+                }
+            }
+            if expLen < 2 {
+                buf[pos] = c8'0';
+                pos++;
+            }
+            var ei: uint = 0;
+            while ei < expLen {
+                buf[pos] = expBuf[ei];
+                pos++;
+                ei++;
+            }
+            return String::From(buf.data, pos);
+        }
         // Integer part — digits come out LSB-first, reverse into buf
         var intBuf: char8[32];
         var intLen: uint = 0;

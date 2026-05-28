@@ -5,14 +5,11 @@
 */
 
 module Std {
-    func ToString(value: bool8) -> String {
-        if value {
-            return String::From("true");
-        }
-        return String::From("false");
+    func ToString(value: int16) -> String {
+        return ToString(value as int64);
     } 
 
-    extend bool8 : Display {
+    extend int16 : Display {
         func ToString(self) -> String {            
             return ToString(*self);
         }

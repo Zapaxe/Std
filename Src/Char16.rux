@@ -1,0 +1,31 @@
+/*
+    Rux standard library
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+module Std {
+    func ToString(value: char16) -> String {
+        var buf: char8[3];
+        let cp = value as uint;
+        if cp < 0x80 {
+            buf[0] = cp as char8;
+            return String::From(buf.data, 1);
+        }
+        if cp < 0x800 {
+            buf[0] = (0xC0 | (cp >> 6)) as char8;
+            buf[1] = (0x80 | (cp & 0x3F)) as char8;
+            return String::From(buf.data, 2);
+        }
+        buf[0] = (0xE0 | (cp >> 12)) as char8;
+        buf[1] = (0x80 | ((cp >> 6) & 0x3F)) as char8;
+        buf[2] = (0x80 | (cp & 0x3F)) as char8;
+        return String::From(buf.data, 3);
+    }
+
+    extend char16 : Display {
+        func ToString(self) -> String {
+            return ToString(*self);
+        }
+    }
+}
