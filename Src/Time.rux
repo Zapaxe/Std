@@ -1,31 +1,139 @@
-import Windows::*;
+/*
+    Std::Time Modul for Rux
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
 
 module Std::Time {
-    func SleepMs(ms: uint32) {
-        Sleep(ms);
+
+@[Target("Linux")]
+import Linux::{
+    Nanosleep,
+    ClockGetTime,
+    CLOCK_MONOTONIC,
+    CLOCK_REALTIME,
+    Timespec,
+    IsError
+};
+
+@[Target("Windows")]
+import Windows::{
+    Sleep,
+    GetTickCount64,
+    GetLocalTime,
+    GetSystemTime,
+    SystemTime
+};
+
+
+@[Target("Linux")]
+struct SystemTime {
+    year: uint16;
+    month: uint16;
+    dayOfWeek: uint16;
+    day: uint16;
+    hour: uint16;
+    minute: uint16;
+    second: uint16;
+    milliseconds: uint16;
+}
+
+
+@[Target("Windows")]
+func SleepMs(ms: uint32) {
+    Sleep(ms);
+}
+
+@[Target("Linux")]
+func SleepMs(ms: uint32) {
+    let req = Timespec {
+        tv_sec: (ms / 1000u32) as int64,
+        tv_nsec: ((ms % 1000u32) * 1000000u32) as int64
+    };
+    var rem = Timespec { tv_sec: 0i64, tv_nsec: 0i64 };
+    Nanosleep(&req, &rem);
+}
+
+func SleepSeconds(seconds: uint32) {
+    SleepMs(seconds * 1000u32);
+}
+
+func SleepMinutes(minutes: uint32) {
+    SleepSeconds(minutes * 60u32);
+}
+
+
+@[Target("Windows")]
+func TickMs() -> uint64 {
+    return GetTickCount64();
+}
+
+@[Target("Linux")]
+func TickMs() -> uint64 {
+    var ts = Timespec { tv_sec: 0i64, tv_nsec: 0i64 };
+    let result = ClockGetTime(CLOCK_MONOTONIC, &ts);
+    if IsError(result) {
+        return 0u64;
+    }
+    return (ts.tv_sec as uint64 * 1000u64) + (ts.tv_nsec as uint64 / 1000000u64);
+}
+
+
+@[Target("Windows")]
+func LocalTime() -> SystemTime {
+    var time = SystemTime { year: 0u16, month: 0u16, dayOfWeek: 0u16, day: 0u16, hour: 0u16, minute: 0u16, second: 0u16, milliseconds: 0u16 };
+    GetLocalTime(&time);
+    return time;
+}
+
+@[Target("Linux")]
+func LocalTime() -> SystemTime {
+    return UtcTime();
+}
+
+@[Target("Windows")]
+func UtcTime() -> SystemTime {
+    var time = SystemTime { year: 0u16, month: 0u16, dayOfWeek: 0u16, day: 0u16, hour: 0u16, minute: 0u16, second: 0u16, milliseconds: 0u16 };
+    GetSystemTime(&time);
+    return time;
+}
+
+@[Target("Linux")]
+func UtcTime() -> SystemTime {
+    var ts = Timespec { tv_sec: 0i64, tv_nsec: 0i64 };
+    let result = ClockGetTime(CLOCK_REALTIME, &ts);
+    if IsError(result) {
+        return SystemTime { year: 0u16, month: 0u16, dayOfWeek: 0u16, day: 0u16, hour: 0u16, minute: 0u16, second: 0u16, milliseconds: 0u16 };
     }
 
-    func SleepSeconds(seconds: uint32) {
-        Sleep(seconds * 1000);
-    }
+    var st = SystemTime { year: 0u16, month: 0u16, dayOfWeek: 0u16, day: 0u16, hour: 0u16, minute: 0u16, second: 0u16, milliseconds: 0u16 };
+    st.milliseconds = (ts.tv_nsec / 1000000i64) as uint16;
 
-    func SleepMinutes(minutes: uint32) {
-        SleepSeconds(minutes * 60);
-    }
+    var remSeconds = ts.tv_sec;
+    st.second = (remSeconds % 60i64) as uint16;
+    var remMinutes = remSeconds / 60i64;
+    st.minute = (remMinutes % 60i64) as uint16;
+    var remHours = remMinutes / 60i64;
+    st.hour = (remHours % 24i64) as uint16;
 
-    func TickMs() -> uint64 {
-        return GetTickCount64();
-    }
+    let daysSinceEpoch = remHours / 24i64;
 
-    func LocalTime() -> SystemTime {
-        let time: SystemTime = null;
-        GetLocalTime(&time);
-        return time;
-    }
+    var z = daysSinceEpoch + 719468i64;
+    let era = (z >= 0i64 ? z : z - 146096i64) / 146097i64;
+    let doe = (z - era * 146097i64) as uint64;
+    let yoe = (doe * 2000u64 + 1u64) / 730500u64;
+    let y = (era * 400i64) + yoe as int64;
+    let doy = doe - (365u64 * yoe + yoe / 4u64 - yoe / 100u64);
+    let mp = (5u64 * doy + 2u64) / 153u64;
+    let d = doy - (153u64 * mp + 2u64) / 5u64 + 1u64;
+    let m = mp < 10u64 ? mp + 3u64 : mp - 9u64;
 
-    func UtcTime() -> SystemTime {
-        let time: SystemTime = null;
-        GetSystemTime(&time);
-        return time;
-    }
+    st.year = (y + (m <= 2u64 ? 1i64 : 0i64)) as uint16;
+    st.month = m as uint16;
+    st.day = d as uint16;
+    st.dayOfWeek = ((daysSinceEpoch + 4i64) % 7i64) as uint16;
+
+    return st;
+}
+
 }
