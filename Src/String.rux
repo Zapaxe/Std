@@ -392,7 +392,7 @@ module Std {
             self.length = newLength;
         }
 
-        func TitleCaseInPlace(self) -> String {
+        func TitleCaseInPlace(self) {
             let first = *(self.data + 0);
 
             if first >= 'a' && first <= 'z' {
