@@ -192,7 +192,7 @@ module Std {
                     count += 1;
                 }
             }
-            let ptr = Alloc(count * 16) as *String;
+            let ptr = Alloc(count) as *String;
 
             var tokenStart = 0;
             var ptrIndex = 0;
