@@ -4,16 +4,45 @@
     Licensed under the MIT License
 */
 
-module Std::Io {
-    import Windows::{
-        CodePage,
-        GetStdHandle,
-        MultiByteToWideChar,
-        StdHandle,
-        WriteConsoleW
-    };
-    import Std::Display;
+/*@[Target("BSD")]
+import BSD::{
+    Func1,
+    Func2,
+    Func3
+};
 
+@[Target("Illumos")]
+import Illumos::{
+    Func1,
+    Func2,
+    Func3
+};*/
+
+@[Target("Linux")]
+import Linux::{
+    Stdout,
+    Write
+};
+
+/*@[Target("MacOS")]
+import MacOS::{
+    Func1,
+    Func2,
+    Func3
+};*/
+
+@[Target("Windows")]
+import Windows::{
+    CodePage,
+    GetStdHandle,
+    MultiByteToWideChar,
+    StdHandle,
+    WriteConsoleW
+};
+
+import Std::Display;
+
+module Std::Io {
     func Print(value: int8) {
         Print(ToString(value));
     }
@@ -86,6 +115,28 @@ module Std::Io {
         Print(ToString(value));
     }
 
+    @[Target("BSD")]
+    func Print(string: *const char8, length: uint) {
+        // platform specific implementation for BSD
+    }
+
+    @[Target("Illumos")]
+    func Print(string: *const char8, length: uint) {
+        // platform specific implementation for Illumos
+    }
+
+    @[Target("Linux")]
+    func Print(string: *const char8, length: uint) {
+        if length == 0 { return; }
+        Write(Stdout, string, length);
+    }
+
+    @[Target("MacOS")]
+    func Print(string: *const char8, length: uint) {
+        // platform specific implementation for macOS
+    }
+
+    @[Target("Windows")]
     func Print(string: *const char8, length: uint) {
         if length == 0 { return; }
         const MaxLength: uint = 4096;
@@ -97,12 +148,39 @@ module Std::Io {
         Print(wideBuf.data, wideLen as uint);
     }
 
+    @[Target("BSD")]
+    func Print(string: *const char16, length: uint) {
+        // platform specific implementation for BSD
+    }
+
+    @[Target("Illumos")]
+    func Print(string: *const char16, length: uint) {
+        // platform specific implementation for Illumos
+    }
+
+    @[Target("Linux")]
+    func Print(string: *const char16, length: uint) {
+        var byte: char8[1];
+        var i: uint = 0;
+        while i < length {
+            byte[0] = (*(string + i)) as char8;
+            Print(byte.data, 1u);
+            i++;
+        }
+    }
+
+    @[Target("MacOS")]
+    func Print(string: *const char16, length: uint) {
+        // platform specific implementation for macOS
+    }
+
+    @[Target("Windows")]
     func Print(string: *const char16, length: uint) {
         if length == 0 { return; }
         let handle = GetStdHandle(StdHandle::Output as uint32);
         WriteConsoleW(handle, string, length as uint32, null, null);
     }
-
+    
     func Print(string: char8[]) {
         Print(string.data, string.length);
     }
@@ -120,6 +198,28 @@ module Std::Io {
         Print(formatted.data, formatted.length);
     }
 
+    @[Target("BSD")]
+    func PrintLine() {
+        // platform specific implementation for BSD
+    }
+
+    @[Target("Illumos")]
+    func PrintLine() {
+        // platform specific implementation for Illumos
+    }
+
+    @[Target("Linux")]
+    func PrintLine() {
+        let newline = c8"\n";
+        Print(newline.data, newline.length);
+    }
+
+    @[Target("MacOS")]
+    func PrintLine() {
+        // platform specific implementation for macOS
+    }
+
+    @[Target("Windows")]
     func PrintLine() {
         let handle = GetStdHandle(StdHandle::Output as uint32);
         let newline = c16"\n";

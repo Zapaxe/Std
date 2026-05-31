@@ -1,10 +1,26 @@
 [Package]
 Name = "Std"
-Version = "0.1.4"
+Version = "0.1.5"
 Type = "Source"
 Description = "Rux standard library"
 Authors = ["Rux Contributors <info@rux-lang.dev>"]
 
-[Dependencies]
+[Dependencies.Target.BSD]
+BSD = "*"
+#BSD = { Path = "../BSD" }
+
+[Dependencies.Target.Illumos]
+Illumos = "*"
+#Illumos = { Path = "../Illumos" }
+
+[Dependencies.Target.Linux]
+Linux = "*"
+#Linux = { Path = "../Linux" }
+
+[Dependencies.Target.MacOS]
+MacOS = "*"
+#MacOS = { Path = "../MacOS" }
+
+[Dependencies.Target.Windows]
 Windows = "*"
 #Windows = { Path = "../Windows" }

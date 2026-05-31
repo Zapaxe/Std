@@ -4,9 +4,46 @@
     Licensed under the MIT License
 */
 
-module Std {
-    import Windows::ExitProcess;
+/*[Target("BSD")]
+import BSD::SomeFunction;*/
 
+/*[Target("Illumos")]
+import Illumos::SomeFunction;*/
+
+@[Target("Linux")]
+import Linux::{
+    Syscall1,
+    SYS_EXIT
+};
+
+/*[Target("macOS")]
+import MacOS::SomeFunction;*/
+
+@[Target("Windows")]
+import Windows::ExitProcess;
+
+module Std {
+    @[Target("BSD")]
+    func Exit(code: uint32) {
+        // platform specific implementation for BSD
+    }
+
+    @[Target("Illumos")]
+    func Exit(code: uint32) {
+        // platform specific implementation for Illumos
+    }
+
+    @[Target("Linux")]
+    func Exit(code: uint32) {
+        Syscall1(SYS_EXIT, code as uint64);
+    }
+
+    @[Target("MacOS")]
+    func Exit(code: uint32) {
+        // platform specific implementation for macOS
+    }
+
+    @[Target("Windows")]
     func Exit(code: uint32) {
         ExitProcess(code);
     }

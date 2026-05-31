@@ -4,9 +4,10 @@
     Licensed under the MIT License
 */
 
+import Std::Exit;
+import Std::Io::Print;
+
 module Std {
-    import Std::Io::Print;
-    import Windows::ExitProcess;
 
     func Fatal(message: char8[], file: char8[] = #file, function: char8[] = #function,
         line: uint = #line, column: uint = #column) {
@@ -14,6 +15,6 @@ module Std {
             String::From(file) + ":" + Format("{}", line) + ":" + Format("{}", column) +
             "\n    in function " + String::From(function) + "\n";
         Print(output);
-        ExitProcess(1);
+        Exit(1);
     }
 }
