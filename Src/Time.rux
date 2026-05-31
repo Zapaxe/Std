@@ -1,11 +1,21 @@
 module Std::Time {
+    struct SystemTime {
+        year: uint16;
+        month: uint16;
+        dayOfWeek: uint16;
+        day: uint16;
+        hour: uint16;
+        minute: uint16;
+        second: uint16;
+        milliseconds: uint16;
+    }
+
     @[Target("Windows")]
     import Windows::{
         GetLocalTime,
         GetSystemTime,
         GetTickCount64,
-        Sleep,
-        SystemTime
+        Sleep
     };
 
     @[Target("Windows")]
@@ -14,7 +24,23 @@ module Std::Time {
     }
 
     @[Target("Linux")]
-    func SleepMs(ms: uint32) {}
+    import Linux::{
+        ClockGettime,
+        Nanosleep,
+        timespec
+    };
+
+    const CLOCK_REALTIME: int32 = 0i32;
+    const CLOCK_MONOTONIC: int32 = 1i32;
+
+    @[Target("Linux")]
+    func SleepMs(ms: uint32) {
+        var ts = timespec {
+            tv_sec: (ms / 1000) as int64,
+            tv_nsec: ((ms % 1000) * 1000000) as int64
+        };
+        Nanosleep(&ts, null);
+    }
 
     @[Target("Windows")]
     func SleepSeconds(seconds: uint32) {
@@ -22,7 +48,9 @@ module Std::Time {
     }
 
     @[Target("Linux")]
-    func SleepSeconds(seconds: uint32) {}
+    func SleepSeconds(seconds: uint32) {
+        SleepMs(seconds * 1000);
+    }
 
     @[Target("Windows")]
     func SleepMinutes(minutes: uint32) {
@@ -30,7 +58,9 @@ module Std::Time {
     }
 
     @[Target("Linux")]
-    func SleepMinutes(minutes: uint32) {}
+    func SleepMinutes(minutes: uint32) {
+        SleepSeconds(minutes * 60);
+    }
 
     @[Target("Windows")]
     func TickMs() -> uint64 {
@@ -39,6 +69,73 @@ module Std::Time {
 
     @[Target("Linux")]
     func TickMs() -> uint64 {
-        return 0u64;
+        var ts = timespec { tv_sec: 0i64, tv_nsec: 0i64 };
+        let result = ClockGettime(CLOCK_MONOTONIC, &ts);
+        if result != 0i64 {
+            return 0u64;
+        }
+        return (ts.tv_sec * 1000i64 + ts.tv_nsec / 1000000i64) as uint64;
+    }
+
+    @[Target("Windows")]
+    func LocalTime() -> SystemTime {
+        let time: SystemTime;
+        GetLocalTime(&time);
+        return time;
+    }
+
+    @[Target("Linux")]
+    func LocalTime() -> SystemTime {
+        var ts = timespec { tv_sec: 0i64, tv_nsec: 0i64 };
+        ClockGettime(CLOCK_REALTIME, &ts);
+        return EpochToSystemTime(ts.tv_sec, ts.tv_nsec);
+    }
+
+    @[Target("Windows")]
+    func UtcTime() -> SystemTime {
+        let time: SystemTime;
+        GetSystemTime(&time);
+        return time;
+    }
+
+    @[Target("Linux")]
+    func UtcTime() -> SystemTime {
+        var ts = timespec { tv_sec: 0i64, tv_nsec: 0i64 };
+        ClockGettime(CLOCK_REALTIME, &ts);
+        return EpochToSystemTime(ts.tv_sec, ts.tv_nsec);
+    }
+
+    func EpochToSystemTime(sec: int64, nsec: int64) -> SystemTime {
+        let days = sec / 86400i64;
+        let timeOfDay = sec % 86400i64;
+
+        let h = (timeOfDay / 3600i64) as uint16;
+        let m = ((timeOfDay % 3600i64) / 60i64) as uint16;
+        let s = (timeOfDay % 60i64) as uint16;
+        let ms = (nsec / 1000000i64) as uint16;
+
+        let z = days + 719468i64;
+        let era = (z >= 0i64 ? z : z - 146096i64) / 146097i64;
+        let doe = z - era * 146097i64;
+        let yoe = (doe - doe / 1460i64 + doe / 36524i64 - doe / 146096i64) / 365i64;
+        let yearCalc = yoe + era * 400i64;
+        let doy = doe - (365i64 * yoe + yoe / 4i64 - yoe / 100i64);
+        let mp = (5i64 * doy + 2i64) / 153i64;
+        let day = (doy - (153i64 * mp + 2i64) / 5i64 + 1i64) as uint16;
+        let monthCalc = mp + (mp < 10i64 ? 3i64 : -9i64);
+        let month = monthCalc as uint16;
+        let year = (yearCalc + (monthCalc <= 2i64 ? 1i64 : 0i64)) as uint16;
+        let dayOfWeek = ((days + 4i64) % 7i64) as uint16;
+
+        return SystemTime {
+            year: year,
+            month: month,
+            dayOfWeek: dayOfWeek,
+            day: day,
+            hour: h,
+            minute: m,
+            second: s,
+            milliseconds: ms
+        };
     }
 }
