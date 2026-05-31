@@ -1,31 +1,44 @@
-import Windows::*;
-
 module Std::Time {
+    @[Target("Windows")]
+    import Windows::{
+        GetLocalTime,
+        GetSystemTime,
+        GetTickCount64,
+        Sleep,
+        SystemTime
+    };
+
+    @[Target("Windows")]
     func SleepMs(ms: uint32) {
         Sleep(ms);
     }
 
+    @[Target("Linux")]
+    func SleepMs(ms: uint32) {}
+
+    @[Target("Windows")]
     func SleepSeconds(seconds: uint32) {
         Sleep(seconds * 1000);
     }
 
+    @[Target("Linux")]
+    func SleepSeconds(seconds: uint32) {}
+
+    @[Target("Windows")]
     func SleepMinutes(minutes: uint32) {
         SleepSeconds(minutes * 60);
     }
 
+    @[Target("Linux")]
+    func SleepMinutes(minutes: uint32) {}
+
+    @[Target("Windows")]
     func TickMs() -> uint64 {
         return GetTickCount64();
     }
 
-    func LocalTime() -> SystemTime {
-        let time: SystemTime = null;
-        GetLocalTime(&time);
-        return time;
-    }
-
-    func UtcTime() -> SystemTime {
-        let time: SystemTime = null;
-        GetSystemTime(&time);
-        return time;
+    @[Target("Linux")]
+    func TickMs() -> uint64 {
+        return 0u64;
     }
 }

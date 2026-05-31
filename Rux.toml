@@ -5,14 +5,7 @@ Type = "Source"
 Description = "Rux standard library"
 Authors = ["Rux Contributors <info@rux-lang.dev>"]
 
-[Dependencies.Target.Linux]
+[Dependencies]
 Linux = "*"
-#Linux = { Path = "../Linux" }
-
-[Dependencies.Target.MacOS]
 MacOS = "*"
-#MacOS = { Path = "../MacOS" }
-
-[Dependencies.Target.Windows]
 Windows = "*"
-#Windows = { Path = "../Windows" }
