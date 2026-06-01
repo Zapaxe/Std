@@ -4,19 +4,19 @@
     Licensed under the MIT License
 */
 
-/*@[Target("BSD")]
+@[Target("BSD")]
 import BSD::{
-    Func1,
-    Func2,
-    Func3
+    IsError,
+    Read,
+    Stdin
 };
 
 @[Target("Illumos")]
 import Illumos::{
-    Func1,
-    Func2,
-    Func3
-};*/
+    IsError,
+    Read,
+    Stdin
+};
 
 @[Target("Linux")]
 import Linux::{
@@ -42,25 +42,56 @@ import Windows::{
 import Std::Memory::{ Alloc, Copy };
 
 module Std::Io {
-    // Maximum buffer size in the stack for reading input lines
     const MaxInputLength: uint = 4096;
 
-    /// Reads a line of raw UTF-8 input from standard input
-    /// Returns an empty String on error or EOF
     @[Target("BSD")]
     func ReadLine() -> String {
-        return String { data: null, length: 0 };
+        var buf: char8[MaxInputLength];
+        let count = Read(Stdin, buf.data, MaxInputLength);
+        if IsError(count) || count == 0i64 {
+            return String { data: null, length: 0 };
+        }
+
+        var len = count as uint;
+        if len > 0 && buf[len - 1] == c8'\n' {
+            len--;
+        }
+        if len > 0 && buf[len - 1] == c8'\r' {
+            len--;
+        }
+        if len == 0 {
+            return String { data: null, length: 0 };
+        }
+
+        let ptr = Alloc(len) as *char8;
+        Copy(ptr, buf.data, len);
+        return String { data: ptr, length: len };
     }
 
-    /// Reads a line of raw UTF-8 input from standard input
-    /// Returns an empty String on error or EOF
     @[Target("Illumos")]
     func ReadLine() -> String {
-        return String { data: null, length: 0 };
+        var buf: char8[MaxInputLength];
+        let count = Read(Stdin, buf.data, MaxInputLength);
+        if IsError(count) || count == 0i64 {
+            return String { data: null, length: 0 };
+        }
+
+        var len = count as uint;
+        if len > 0 && buf[len - 1] == c8'\n' {
+            len--;
+        }
+        if len > 0 && buf[len - 1] == c8'\r' {
+            len--;
+        }
+        if len == 0 {
+            return String { data: null, length: 0 };
+        }
+
+        let ptr = Alloc(len) as *char8;
+        Copy(ptr, buf.data, len);
+        return String { data: ptr, length: len };
     }
 
-    /// Reads a line of raw UTF-8 input from standard input
-    /// Returns an empty String on error or EOF
     @[Target("Linux")]
     func ReadLine() -> String {
         var buf: char8[MaxInputLength];
@@ -85,15 +116,11 @@ module Std::Io {
         return String { data: ptr, length: len };
     }
 
-     /// Reads a line of raw UTF-8 input from standard input
-    /// Returns an empty String on error or EOF
-   @[Target("MacOS")]
+    @[Target("MacOS")]
     func ReadLine() -> String {
         return String { data: null, length: 0 };
     }
 
-    /// Reads a line of raw UTF-8 input from standard input
-    /// Returns an empty String on error or EOF
     @[Target("Windows")]
     func ReadLine() -> String {
         var buf: char8[MaxInputLength];
