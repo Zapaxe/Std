@@ -12,9 +12,8 @@ import BSD::{
 
 @[Target("Illumos")]
 import Illumos::{
-    Func1,
-    Func2,
-    Func3
+    Stdout,
+    Write
 };
 
 @[Target("Linux")]
@@ -122,7 +121,8 @@ module Std::Io {
 
     @[Target("Illumos")]
     func Print(string: *const char8, length: uint) {
-        // platform specific implementation for Illumos
+        if length == 0 { return; }
+        Write(Stdout, string, length);
     }
 
     @[Target("Linux")]
@@ -133,7 +133,6 @@ module Std::Io {
 
     @[Target("MacOS")]
     func Print(string: *const char8, length: uint) {
-        // platform specific implementation for macOS
     }
 
     @[Target("Windows")]
@@ -161,7 +160,13 @@ module Std::Io {
 
     @[Target("Illumos")]
     func Print(string: *const char16, length: uint) {
-        // platform specific implementation for Illumos
+        var byte: char8[1];
+        var i: uint = 0;
+        while i < length {
+            byte[0] = (*(string + i)) as char8;
+            Print(byte.data, 1u);
+            i++;
+        }
     }
 
     @[Target("Linux")]
@@ -177,7 +182,6 @@ module Std::Io {
 
     @[Target("MacOS")]
     func Print(string: *const char16, length: uint) {
-        // platform specific implementation for macOS
     }
 
     @[Target("Windows")]
@@ -212,7 +216,8 @@ module Std::Io {
 
     @[Target("Illumos")]
     func PrintLine() {
-        // platform specific implementation for Illumos
+        let newline = c8"\n";
+        Print(newline.data, newline.length);
     }
 
     @[Target("Linux")]
@@ -223,7 +228,6 @@ module Std::Io {
 
     @[Target("MacOS")]
     func PrintLine() {
-        // platform specific implementation for macOS
     }
 
     @[Target("Windows")]
