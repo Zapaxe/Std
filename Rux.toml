@@ -7,20 +7,20 @@ Authors = ["Rux Contributors <info@rux-lang.dev>"]
 
 [Dependencies.Target.BSD]
 BSD = "*"
-#BSD = { Path = "../BSD" }
+# BSD = { Path = "../BSD" }
 
 [Dependencies.Target.Illumos]
 Illumos = "*"
-#Illumos = { Path = "../Illumos" }
+# Illumos = { Path = "../Illumos" }
 
 [Dependencies.Target.Linux]
 Linux = "*"
-#Linux = { Path = "../Linux" }
+# Linux = { Path = "../Linux" }
 
 [Dependencies.Target.MacOS]
 MacOS = "*"
-#MacOS = { Path = "../MacOS" }
+# MacOS = { Path = "../MacOS" }
 
 [Dependencies.Target.Windows]
 Windows = "*"
-#Windows = { Path = "../Windows" }
+# Windows = { Path = "../Windows" }
