@@ -67,17 +67,17 @@ module Std::Hash::Sha1 {
             var k: uint32 = 0u32;
 
             if t < 20u {
-                f = (b & c) | ((b ^ 0xFFFFFFFFu32) & d);
-                k = 0x5A827999u32;
+                f = (b & c) | ((b ^ 0xFFFFFFFF) & d);
+                k = 0x5A827999;
             } else if t < 40u {
                 f = b ^ c ^ d;
-                k = 0x6ED9EBA1u32;
+                k = 0x6ED9EBA1;
             } else if t < 60u {
                 f = (b & c) | (b & d) | (c & d);
-                k = 0x8F1BBCDCu32;
+                k = 0x8F1BBCDC;
             } else {
                 f = b ^ c ^ d;
-                k = 0xCA62C1D6u32;
+                k = 0xCA62C1D6;
             }
 
             let temp = rotl32(a, 5u32) + f + e + k + w[t];
@@ -99,11 +99,11 @@ module Std::Hash::Sha1 {
     }
 
     func hashSha1Bytes(message: *const uint8, msgLen: uint, sha0Mode: bool) -> String {
-        var h0: uint32 = 0x67452301u32;
-        var h1: uint32 = 0xEFCDAB89u32;
-        var h2: uint32 = 0x98BADCFEu32;
-        var h3: uint32 = 0x10325476u32;
-        var h4: uint32 = 0xC3D2E1F0u32;
+        var h0: uint32 = 0x67452301;
+        var h1: uint32 = 0xEFCDAB89;
+        var h2: uint32 = 0x98BADCFE;
+        var h3: uint32 = 0x10325476;
+        var h4: uint32 = 0xC3D2E1F0;
 
         let fullBlocks = msgLen / BlockSize;
         var blockIndex: uint = 0u;
