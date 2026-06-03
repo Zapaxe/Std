@@ -211,18 +211,18 @@ module Std::Hash::Sha256 {
             tail[rem] = 0x80u8;
 
             if rem < 56u {
-                let bitLen = (msgLen as uint64) * 8u64;
+                let bitLen = (msgLen as uint64) * 8 as uint64;
                 var i: uint = 0u;
                 while i < 8u {
-                    tail[56u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFFu64) as uint8;
+                    tail[56u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFF) as uint8;
                     i += 1u;
                 }
                 processBlock(tail.data as *const uint8, &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7);
             } else {
-                let bitLen = (msgLen as uint64) * 8u64;
+                let bitLen = (msgLen as uint64) * 8 as uint64;
                 var i: uint = 0u;
                 while i < 8u {
-                    tail[120u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFFu64) as uint8;
+                    tail[120u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFF) as uint8;
                     i += 1u;
                 }
                 processBlock(tail.data as *const uint8, &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7);

@@ -74,7 +74,7 @@ module Std::Hash::Blake2 {
         let prev = *t0;
         *t0 += blockLen as uint64;
         if *t0 < prev {
-            *t1 += 1u64;
+            *t1 += 1 as uint64;
         }
 
         var v0 = *h0;
@@ -85,19 +85,19 @@ module Std::Hash::Blake2 {
         var v5 = *h5;
         var v6 = *h6;
         var v7 = *h7;
-        var v8 = 0x6A09E667F3BCC908u64;
-        var v9 = 0xBB67AE8584CAA73Bu64;
-        var v10 = 0x3C6EF372FE94F82Bu64;
-        var v11 = 0xA54FF53A5F1D36F1u64;
-        var v12 = 0x510E527FADE682D1u64;
-        var v13 = 0x9B05688C2B3E6C1Fu64;
-        var v14 = 0x1F83D9ABFB41BD6Bu64;
-        var v15 = 0x5BE0CD19137E2179u64;
+        var v8: uint64 = 0x6A09E667F3BCC908;
+        var v9: uint64 = 0xBB67AE8584CAA73B;
+        var v10: uint64 = 0x3C6EF372FE94F82B;
+        var v11: uint64 = 0xA54FF53A5F1D36F1;
+        var v12: uint64 = 0x510E527FADE682D1;
+        var v13: uint64 = 0x9B05688C2B3E6C1F;
+        var v14: uint64 = 0x1F83D9ABFB41BD6B;
+        var v15: uint64 = 0x5BE0CD19137E2179;
 
         v12 = v12 ^ *t0;
         v13 = v13 ^ *t1;
         if finalBlock {
-            v14 = v14 ^ 0xFFFFFFFFFFFFFFFFu64;
+            v14 = v14 ^ (0xFFFFFFFFFFFFFFFF as uint64);
         }
 
         var r: uint = 0u;
@@ -174,16 +174,16 @@ module Std::Hash::Blake2 {
     }
 
     func hashBytesImpl(message: *const uint8, msgLen: uint) -> String {
-            var h0 = 0x6A09E667F3BCC908u64 ^ 0x01010040u64;
-            var h1 = 0xBB67AE8584CAA73Bu64;
-            var h2 = 0x3C6EF372FE94F82Bu64;
-            var h3 = 0xA54FF53A5F1D36F1u64;
-            var h4 = 0x510E527FADE682D1u64;
-            var h5 = 0x9B05688C2B3E6C1Fu64;
-            var h6 = 0x1F83D9ABFB41BD6Bu64;
-            var h7 = 0x5BE0CD19137E2179u64;
-            var t0: uint64 = 0u64;
-            var t1: uint64 = 0u64;
+            var h0: uint64 = (0x6A09E667F3BCC908 ^ 0x01010040) as uint64;
+            var h1: uint64 = 0xBB67AE8584CAA73B;
+            var h2: uint64 = 0x3C6EF372FE94F82B;
+            var h3: uint64 = 0xA54FF53A5F1D36F1;
+            var h4: uint64 = 0x510E527FADE682D1;
+            var h5: uint64 = 0x9B05688C2B3E6C1F;
+            var h6: uint64 = 0x1F83D9ABFB41BD6B;
+            var h7: uint64 = 0x5BE0CD19137E2179;
+            var t0: uint64 = 0;
+            var t1: uint64 = 0;
 
             let fullBlocks = msgLen / BlockSize;
             let rem = msgLen % BlockSize;

@@ -281,7 +281,7 @@ module Std::Hash::Md5 {
             }
             tail[rem] = 0x80u8;
 
-            let bitLen = (msgLen as uint64) * 8u64;
+            let bitLen = (msgLen as uint64) * 8 as uint64;
             if rem < 56u {
                 writeU64LE(tail.data, 56u, bitLen);
                 processMd5Block(tail.data as *const uint8, &a, &b, &c, &d);

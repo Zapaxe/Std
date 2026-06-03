@@ -128,18 +128,18 @@ module Std::Hash::Sha1 {
         }
         tail[rem] = 0x80u8;
 
-        let bitLen = (msgLen as uint64) * 8u64;
+        let bitLen = (msgLen as uint64) * 8 as uint64;
         if rem < 56u {
             var i: uint = 0u;
             while i < 8u {
-                tail[56u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFFu64) as uint8;
+                tail[56u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFF) as uint8;
                 i += 1u;
             }
             processSha1Block(tail.data as *const uint8, sha0Mode, &h0, &h1, &h2, &h3, &h4);
         } else {
             var i: uint = 0u;
             while i < 8u {
-                tail[120u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFFu64) as uint8;
+                tail[120u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFF) as uint8;
                 i += 1u;
             }
             processSha1Block(tail.data as *const uint8, sha0Mode, &h0, &h1, &h2, &h3, &h4);
