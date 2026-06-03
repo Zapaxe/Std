@@ -208,7 +208,7 @@ module Std::Hash::Sha256 {
                 tail[remI] = message[fullBlocks * BlockSize + remI];
                 remI += 1u;
             }
-            tail[rem] = 0x80u8;
+            tail[rem] = 0x80;
 
             if rem < 56u {
                 let bitLen = (msgLen as uint64) * 8 as uint64;

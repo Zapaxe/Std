@@ -306,11 +306,11 @@ module Std::Hash::Sha512 {
             let bitLen = (msgLen as uint64) * 8 as uint64;
 
             if rem < 112u {
-                tail[rem] = 0x80u8;
+                tail[rem] = 0x80;
                 writeU64BE(tail.data, 120u, bitLen);
                 processSha512Block(tail.data as *const uint8, &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7);
             } else {
-                tail[rem] = 0x80u8;
+                tail[rem] = 0x80;
                 writeU64BE((tail.data as uint64 + 128u) as *uint8, 120u, bitLen);
                 processSha512Block(tail.data as *const uint8, &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7);
                 processSha512Block((tail.data as uint64 + 128u) as *const uint8, &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7);

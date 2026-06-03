@@ -120,7 +120,7 @@ module Std::Hash::Sha0 {
             tail[remI] = message[fullBlocks * BlockSize + remI];
             remI += 1u;
         }
-        tail[rem] = 0x80u8;
+        tail[rem] = 0x80;
 
         let bitLen = (msgLen as uint64) * 8 as uint64;
         if rem < 56u {

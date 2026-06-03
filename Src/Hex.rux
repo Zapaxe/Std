@@ -39,8 +39,8 @@ module Std::Hex {
         var i: uint = 0u;
         while i < length {
             let b = (*(bytes + i)) as uint8;
-            let hi = (b >> 4) & 0x0Fu8;
-            let lo = b & 0x0Fu8;
+            let hi = (b >> 4) & 0x0F;
+            let lo = b & 0x0F;
             *(out + (i * 2u)) = (hi < 10u8 ? (48u8 + hi) : (87u8 + hi)) as char8;
             *(out + (i * 2u) + 1u) = (lo < 10u8 ? (48u8 + lo) : (87u8 + lo)) as char8;
             i += 1u;
