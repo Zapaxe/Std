@@ -1,0 +1,233 @@
+/*
+    Rux standard library
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+import Std::Hex;
+
+module Std::Hash::Blake2 {
+    const BlockSize: uint = 128u;
+    const DigestSize: uint = 64u;
+
+    struct Blake2 {}
+
+    func rotr(x: uint64, n: uint32) -> uint64 {
+        return (x >> n) | (x << (64u32 - n));
+    }
+
+    func readU64LE(data: *const uint8, offset: uint) -> uint64 {
+        return (data[offset + 0u] as uint64)
+            | ((data[offset + 1u] as uint64) << 8u32)
+            | ((data[offset + 2u] as uint64) << 16u32)
+            | ((data[offset + 3u] as uint64) << 24u32)
+            | ((data[offset + 4u] as uint64) << 32u32)
+            | ((data[offset + 5u] as uint64) << 40u32)
+            | ((data[offset + 6u] as uint64) << 48u32)
+            | ((data[offset + 7u] as uint64) << 56u32);
+    }
+
+    func writeU64LE(data: *uint8, offset: uint, value: uint64) {
+        data[offset + 0u] = value as uint8;
+        data[offset + 1u] = (value >> 8u32) as uint8;
+        data[offset + 2u] = (value >> 16u32) as uint8;
+        data[offset + 3u] = (value >> 24u32) as uint8;
+        data[offset + 4u] = (value >> 32u32) as uint8;
+        data[offset + 5u] = (value >> 40u32) as uint8;
+        data[offset + 6u] = (value >> 48u32) as uint8;
+        data[offset + 7u] = (value >> 56u32) as uint8;
+    }
+
+    func mix(vA: *uint64, vB: *uint64, vC: *uint64, vD: *uint64, x: uint64, y: uint64) {
+        *vA = *vA + *vB + x;
+        *vD = rotr(*vD ^ *vA, 32u32);
+        *vC = *vC + *vD;
+        *vB = rotr(*vB ^ *vC, 24u32);
+        *vA = *vA + *vB + y;
+        *vD = rotr(*vD ^ *vA, 16u32);
+        *vC = *vC + *vD;
+        *vB = rotr(*vB ^ *vC, 63u32);
+    }
+
+    func processBlock(
+        block: *const uint8,
+        blockLen: uint,
+        finalBlock: bool,
+        t0: *uint64,
+        t1: *uint64,
+        h0: *uint64,
+        h1: *uint64,
+        h2: *uint64,
+        h3: *uint64,
+        h4: *uint64,
+        h5: *uint64,
+        h6: *uint64,
+        h7: *uint64
+    ) {
+        var m: uint64[16];
+        var i: uint = 0u;
+        while i < 16u {
+            m[i] = readU64LE(block, i * 8u);
+            i += 1u;
+        }
+
+        let prev = *t0;
+        *t0 += blockLen as uint64;
+        if *t0 < prev {
+            *t1 += 1 as uint64;
+        }
+
+        var v0 = *h0;
+        var v1 = *h1;
+        var v2 = *h2;
+        var v3 = *h3;
+        var v4 = *h4;
+        var v5 = *h5;
+        var v6 = *h6;
+        var v7 = *h7;
+        var v8: uint64 = 0x6A09E667F3BCC908;
+        var v9: uint64 = 0xBB67AE8584CAA73B;
+        var v10: uint64 = 0x3C6EF372FE94F82B;
+        var v11: uint64 = 0xA54FF53A5F1D36F1;
+        var v12: uint64 = 0x510E527FADE682D1;
+        var v13: uint64 = 0x9B05688C2B3E6C1F;
+        var v14: uint64 = 0x1F83D9ABFB41BD6B;
+        var v15: uint64 = 0x5BE0CD19137E2179;
+
+        v12 = v12 ^ *t0;
+        v13 = v13 ^ *t1;
+        if finalBlock {
+            v14 = v14 ^ (0xFFFFFFFFFFFFFFFF as uint64);
+        }
+
+        var r: uint = 0u;
+        while r < 12u {
+            var s0: uint = 0u;
+            var s1: uint = 0u;
+            var s2: uint = 0u;
+            var s3: uint = 0u;
+            var s4: uint = 0u;
+            var s5: uint = 0u;
+            var s6: uint = 0u;
+            var s7: uint = 0u;
+            var s8: uint = 0u;
+            var s9: uint = 0u;
+            var s10: uint = 0u;
+            var s11: uint = 0u;
+            var s12: uint = 0u;
+            var s13: uint = 0u;
+            var s14: uint = 0u;
+            var s15: uint = 0u;
+
+            if r == 0u || r == 10u {
+                s0 = 0u; s1 = 1u; s2 = 2u; s3 = 3u; s4 = 4u; s5 = 5u; s6 = 6u; s7 = 7u;
+                s8 = 8u; s9 = 9u; s10 = 10u; s11 = 11u; s12 = 12u; s13 = 13u; s14 = 14u; s15 = 15u;
+            } else if r == 1u || r == 11u {
+                s0 = 14u; s1 = 10u; s2 = 4u; s3 = 8u; s4 = 9u; s5 = 15u; s6 = 13u; s7 = 6u;
+                s8 = 1u; s9 = 12u; s10 = 0u; s11 = 2u; s12 = 11u; s13 = 7u; s14 = 5u; s15 = 3u;
+            } else if r == 2u {
+                s0 = 11u; s1 = 8u; s2 = 12u; s3 = 0u; s4 = 5u; s5 = 2u; s6 = 15u; s7 = 13u;
+                s8 = 10u; s9 = 14u; s10 = 3u; s11 = 6u; s12 = 7u; s13 = 1u; s14 = 9u; s15 = 4u;
+            } else if r == 3u {
+                s0 = 7u; s1 = 9u; s2 = 3u; s3 = 1u; s4 = 13u; s5 = 12u; s6 = 11u; s7 = 14u;
+                s8 = 2u; s9 = 6u; s10 = 5u; s11 = 10u; s12 = 4u; s13 = 0u; s14 = 15u; s15 = 8u;
+            } else if r == 4u {
+                s0 = 9u; s1 = 0u; s2 = 5u; s3 = 7u; s4 = 2u; s5 = 4u; s6 = 10u; s7 = 15u;
+                s8 = 14u; s9 = 1u; s10 = 11u; s11 = 12u; s12 = 6u; s13 = 8u; s14 = 3u; s15 = 13u;
+            } else if r == 5u {
+                s0 = 2u; s1 = 12u; s2 = 6u; s3 = 10u; s4 = 0u; s5 = 11u; s6 = 8u; s7 = 3u;
+                s8 = 4u; s9 = 13u; s10 = 7u; s11 = 5u; s12 = 15u; s13 = 14u; s14 = 1u; s15 = 9u;
+            } else if r == 6u {
+                s0 = 12u; s1 = 5u; s2 = 1u; s3 = 15u; s4 = 14u; s5 = 13u; s6 = 4u; s7 = 10u;
+                s8 = 0u; s9 = 7u; s10 = 6u; s11 = 3u; s12 = 9u; s13 = 2u; s14 = 8u; s15 = 11u;
+            } else if r == 7u {
+                s0 = 13u; s1 = 11u; s2 = 7u; s3 = 14u; s4 = 12u; s5 = 1u; s6 = 3u; s7 = 9u;
+                s8 = 5u; s9 = 0u; s10 = 15u; s11 = 4u; s12 = 8u; s13 = 6u; s14 = 2u; s15 = 10u;
+            } else if r == 8u {
+                s0 = 6u; s1 = 15u; s2 = 14u; s3 = 9u; s4 = 11u; s5 = 3u; s6 = 0u; s7 = 8u;
+                s8 = 12u; s9 = 2u; s10 = 13u; s11 = 7u; s12 = 1u; s13 = 4u; s14 = 10u; s15 = 5u;
+            } else {
+                s0 = 10u; s1 = 2u; s2 = 8u; s3 = 4u; s4 = 7u; s5 = 6u; s6 = 1u; s7 = 5u;
+                s8 = 15u; s9 = 11u; s10 = 9u; s11 = 14u; s12 = 3u; s13 = 12u; s14 = 13u; s15 = 0u;
+            }
+
+            mix(&v0, &v4, &v8, &v12, m[s0], m[s1]);
+            mix(&v1, &v5, &v9, &v13, m[s2], m[s3]);
+            mix(&v2, &v6, &v10, &v14, m[s4], m[s5]);
+            mix(&v3, &v7, &v11, &v15, m[s6], m[s7]);
+            mix(&v0, &v5, &v10, &v15, m[s8], m[s9]);
+            mix(&v1, &v6, &v11, &v12, m[s10], m[s11]);
+            mix(&v2, &v7, &v8, &v13, m[s12], m[s13]);
+            mix(&v3, &v4, &v9, &v14, m[s14], m[s15]);
+
+            r += 1u;
+        }
+
+        *h0 = *h0 ^ v0 ^ v8;
+        *h1 = *h1 ^ v1 ^ v9;
+        *h2 = *h2 ^ v2 ^ v10;
+        *h3 = *h3 ^ v3 ^ v11;
+        *h4 = *h4 ^ v4 ^ v12;
+        *h5 = *h5 ^ v5 ^ v13;
+        *h6 = *h6 ^ v6 ^ v14;
+        *h7 = *h7 ^ v7 ^ v15;
+    }
+
+    func hashBytesImpl(message: *const uint8, msgLen: uint) -> String {
+            var h0: uint64 = (0x6A09E667F3BCC908 ^ 0x01010040) as uint64;
+            var h1: uint64 = 0xBB67AE8584CAA73B;
+            var h2: uint64 = 0x3C6EF372FE94F82B;
+            var h3: uint64 = 0xA54FF53A5F1D36F1;
+            var h4: uint64 = 0x510E527FADE682D1;
+            var h5: uint64 = 0x9B05688C2B3E6C1F;
+            var h6: uint64 = 0x1F83D9ABFB41BD6B;
+            var h7: uint64 = 0x5BE0CD19137E2179;
+            var t0: uint64 = 0;
+            var t1: uint64 = 0;
+
+            let fullBlocks = msgLen / BlockSize;
+            let rem = msgLen % BlockSize;
+
+            var blockIndex: uint = 0u;
+            while blockIndex < fullBlocks {
+                let offset = blockIndex * BlockSize;
+                let finalBlock = rem == 0u && blockIndex + 1u == fullBlocks;
+                processBlock(message + offset, BlockSize, finalBlock, &t0, &t1, &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7);
+                blockIndex += 1u;
+            }
+
+            if rem > 0u || msgLen == 0u {
+                var tail: uint8[128];
+                var zeroI: uint = 0u;
+                while zeroI < 128u {
+                    tail[zeroI] = 0u8;
+                    zeroI += 1u;
+                }
+
+                var remI: uint = 0u;
+                while remI < rem {
+                    tail[remI] = message[fullBlocks * BlockSize + remI];
+                    remI += 1u;
+                }
+                processBlock(tail.data as *const uint8, rem, true, &t0, &t1, &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7);
+            }
+
+            var digest: uint8[64];
+            writeU64LE(digest.data, 0u, h0);
+            writeU64LE(digest.data, 8u, h1);
+            writeU64LE(digest.data, 16u, h2);
+            writeU64LE(digest.data, 24u, h3);
+            writeU64LE(digest.data, 32u, h4);
+            writeU64LE(digest.data, 40u, h5);
+            writeU64LE(digest.data, 48u, h6);
+            writeU64LE(digest.data, 56u, h7);
+
+            return Hex::EncodeBytes(digest.data as *const char8, DigestSize);
+    }
+
+    extend Blake2 {
+        func Hash(message: char8[]) -> String {
+            return hashBytesImpl(message.data as *const uint8, message.length);
+        }
+    }
+}

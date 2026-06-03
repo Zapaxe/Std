@@ -1,0 +1,168 @@
+/*
+    Rux standard library
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+import Std::Hex;
+
+module Std::Hash::Sha1 {
+    const BlockSize: uint = 64u;
+    const DigestSize: uint = 20u;
+
+    struct Sha1 {}
+
+    func rotl32(x: uint32, n: uint32) -> uint32 {
+        return (x << n) | (x >> (32u32 - n));
+    }
+
+    func readU32BE(data: *const uint8, offset: uint) -> uint32 {
+        return ((data[offset + 0u] as uint32) << 24u32)
+            | ((data[offset + 1u] as uint32) << 16u32)
+            | ((data[offset + 2u] as uint32) << 8u32)
+            | (data[offset + 3u] as uint32);
+    }
+
+    func writeU32BE(data: *uint8, offset: uint, value: uint32) {
+        data[offset + 0u] = (value >> 24u32) as uint8;
+        data[offset + 1u] = (value >> 16u32) as uint8;
+        data[offset + 2u] = (value >> 8u32) as uint8;
+        data[offset + 3u] = value as uint8;
+    }
+
+    func processSha1Block(
+        block: *const uint8,
+        sha0Mode: bool,
+        h0: *uint32,
+        h1: *uint32,
+        h2: *uint32,
+        h3: *uint32,
+        h4: *uint32
+    ) {
+        var w: uint32[80];
+        var t: uint = 0u;
+        while t < 16u {
+            w[t] = readU32BE(block, t * 4u);
+            t += 1u;
+        }
+        while t < 80u {
+            let x = w[t - 3u] ^ w[t - 8u] ^ w[t - 14u] ^ w[t - 16u];
+            if sha0Mode {
+                w[t] = x;
+            } else {
+                w[t] = rotl32(x, 1u32);
+            }
+            t += 1u;
+        }
+
+        var a = *h0;
+        var b = *h1;
+        var c = *h2;
+        var d = *h3;
+        var e = *h4;
+
+        t = 0u;
+        while t < 80u {
+            var f: uint32 = 0u32;
+            var k: uint32 = 0u32;
+
+            if t < 20u {
+                f = (b & c) | ((b ^ 0xFFFFFFFF) & d);
+                k = 0x5A827999;
+            } else if t < 40u {
+                f = b ^ c ^ d;
+                k = 0x6ED9EBA1;
+            } else if t < 60u {
+                f = (b & c) | (b & d) | (c & d);
+                k = 0x8F1BBCDC;
+            } else {
+                f = b ^ c ^ d;
+                k = 0xCA62C1D6;
+            }
+
+            let temp = rotl32(a, 5u32) + f + e + k + w[t];
+            let nextB = rotl32(b, 30u32);
+
+            e = d;
+            d = c;
+            c = nextB;
+            b = a;
+            a = temp;
+            t += 1u;
+        }
+
+        *h0 += a;
+        *h1 += b;
+        *h2 += c;
+        *h3 += d;
+        *h4 += e;
+    }
+
+    func hashSha1Bytes(message: *const uint8, msgLen: uint, sha0Mode: bool) -> String {
+        var h0: uint32 = 0x67452301;
+        var h1: uint32 = 0xEFCDAB89;
+        var h2: uint32 = 0x98BADCFE;
+        var h3: uint32 = 0x10325476;
+        var h4: uint32 = 0xC3D2E1F0;
+
+        let fullBlocks = msgLen / BlockSize;
+        var blockIndex: uint = 0u;
+        while blockIndex < fullBlocks {
+            let offset = blockIndex * BlockSize;
+            processSha1Block(message + offset, sha0Mode, &h0, &h1, &h2, &h3, &h4);
+            blockIndex += 1u;
+        }
+
+        let rem = msgLen % BlockSize;
+        var tail: uint8[128];
+        var zeroI: uint = 0u;
+        while zeroI < 128u {
+            tail[zeroI] = 0u8;
+            zeroI += 1u;
+        }
+
+        var remI: uint = 0u;
+        while remI < rem {
+            tail[remI] = message[fullBlocks * BlockSize + remI];
+            remI += 1u;
+        }
+        tail[rem] = 0x80;
+
+        let bitLen = (msgLen as uint64) * 8 as uint64;
+        if rem < 56u {
+            var i: uint = 0u;
+            while i < 8u {
+                tail[56u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFF) as uint8;
+                i += 1u;
+            }
+            processSha1Block(tail.data as *const uint8, sha0Mode, &h0, &h1, &h2, &h3, &h4);
+        } else {
+            var i: uint = 0u;
+            while i < 8u {
+                tail[120u + i] = ((bitLen >> ((7u - i) * 8u)) & 0xFF) as uint8;
+                i += 1u;
+            }
+            processSha1Block(tail.data as *const uint8, sha0Mode, &h0, &h1, &h2, &h3, &h4);
+            processSha1Block((tail.data as uint64 + 64u) as *const uint8, sha0Mode, &h0, &h1, &h2, &h3, &h4);
+        }
+
+        var digest: uint8[20];
+        writeU32BE(digest.data, 0u, h0);
+        writeU32BE(digest.data, 4u, h1);
+        writeU32BE(digest.data, 8u, h2);
+        writeU32BE(digest.data, 12u, h3);
+        writeU32BE(digest.data, 16u, h4);
+
+        return Hex::EncodeBytes(digest.data as *const char8, DigestSize);
+    }
+
+    extend Sha1 {
+        func Hash(message: char8[]) -> String {
+            return hashSha1Bytes(message.data as *const uint8, message.length, false);
+        }
+
+        func HashSha0(message: char8[]) -> String {
+            return hashSha1Bytes(message.data as *const uint8, message.length, true);
+        }
+    }
+}
