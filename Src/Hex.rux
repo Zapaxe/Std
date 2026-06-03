@@ -1,0 +1,88 @@
+/*
+    Rux standard library
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+module Std::Hex {
+    import Std::Memory::{ Alloc, Free };
+
+    func hexNibble(ch: char8) -> int {
+        let c = ch as int;
+        if c >= 48 && c <= 57 {
+            return c - 48;
+        }
+        if c >= 97 && c <= 102 {
+            return c - 87;
+        }
+        if c >= 65 && c <= 70 {
+            return c - 55;
+        }
+        return -1;
+    }
+
+    func EncodeBytes(bytes: *const char8, length: uint) -> String {
+        return encodeBytes(bytes, length);
+    }
+
+    func encodeBytes(bytes: *const char8, length: uint) -> String {
+        if length == 0 {
+            return String::New();
+        }
+
+        let outLen = length * 2u;
+        let out = Alloc(outLen) as *char8;
+        if out == null {
+            return String::New();
+        }
+
+        var i: uint = 0u;
+        while i < length {
+            let b = (*(bytes + i)) as uint8;
+            let hi = (b >> 4) & 0x0Fu8;
+            let lo = b & 0x0Fu8;
+            *(out + (i * 2u)) = (hi < 10u8 ? (48u8 + hi) : (87u8 + hi)) as char8;
+            *(out + (i * 2u) + 1u) = (lo < 10u8 ? (48u8 + lo) : (87u8 + lo)) as char8;
+            i += 1u;
+        }
+
+        return String { data: out, length: outLen };
+    }
+
+    func Encode(bytes: char8[]) -> String {
+        return encodeBytes(bytes.data, bytes.length);
+    }
+
+    func DecodeBytes(hex: *const char8, length: uint) -> String {
+        if length == 0 {
+            return String::New();
+        }
+        if (length & 1u) != 0u {
+            Fatal("hex input must have an even length");
+        }
+
+        let outLen = length / 2u;
+        let out = Alloc(outLen) as *uint8;
+        if out == null {
+            return String::New();
+        }
+
+        var i: uint = 0u;
+        while i < outLen {
+            let hi = hexNibble(*(hex + i * 2u));
+            let lo = hexNibble(*(hex + i * 2u + 1u));
+            if hi < 0 || lo < 0 {
+                Free(out as *opaque);
+                Fatal("hex input contains invalid characters");
+            }
+            *(out + i) = (((hi as uint8) << 4) | (lo as uint8)) as uint8;
+            i += 1u;
+        }
+
+        return String { data: out as *char8, length: outLen };
+    }
+
+    func Decode(hex: char8[]) -> String {
+        return DecodeBytes(hex.data, hex.length);
+    }
+}

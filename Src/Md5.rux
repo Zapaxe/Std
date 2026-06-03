@@ -1,0 +1,308 @@
+/*
+    Rux standard library
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+import Std::Hex;
+
+module Std::Hash::Md5 {
+    const BlockSize: uint = 64u;
+    const DigestSize: uint = 16u;
+
+    struct Md5 {}
+
+    func rotl(x: uint32, n: uint32) -> uint32 {
+        return (x << n) | (x >> (32u32 - n));
+    }
+
+    func f(x: uint32, y: uint32, z: uint32, round: uint) -> uint32 {
+        let nx = x ^ 0xFFFFFFFFu32;
+        let nz = z ^ 0xFFFFFFFFu32;
+        if round < 16u {
+            return (x & y) | (nx & z);
+        }
+        if round < 32u {
+            return (x & z) | (y & nz);
+        }
+        if round < 48u {
+            return x ^ y ^ z;
+        }
+        return y ^ (x | nz);
+    }
+
+    func gIndex(round: uint) -> uint {
+        if round < 16u {
+            return round;
+        }
+        if round < 32u {
+            return (5u * round + 1u) % 16u;
+        }
+        if round < 48u {
+            return (3u * round + 5u) % 16u;
+        }
+        return (7u * round) % 16u;
+    }
+
+    func shiftAmount(round: uint) -> uint32 {
+        let lane = round % 4u;
+        if round < 16u {
+            if lane == 0u { return 7u32; }
+            if lane == 1u { return 12u32; }
+            if lane == 2u { return 17u32; }
+            return 22u32;
+        }
+        if round < 32u {
+            if lane == 0u { return 5u32; }
+            if lane == 1u { return 9u32; }
+            if lane == 2u { return 14u32; }
+            return 20u32;
+        }
+        if round < 48u {
+            if lane == 0u { return 4u32; }
+            if lane == 1u { return 11u32; }
+            if lane == 2u { return 16u32; }
+            return 23u32;
+        }
+        if lane == 0u { return 6u32; }
+        if lane == 1u { return 10u32; }
+        if lane == 2u { return 15u32; }
+        return 21u32;
+    }
+
+    func readU32LE(data: *const uint8, offset: uint) -> uint32 {
+        return (data[offset + 0u] as uint32)
+            | ((data[offset + 1u] as uint32) << 8u32)
+            | ((data[offset + 2u] as uint32) << 16u32)
+            | ((data[offset + 3u] as uint32) << 24u32);
+    }
+
+    func writeU32LE(data: *uint8, offset: uint, value: uint32) {
+        data[offset + 0u] = value as uint8;
+        data[offset + 1u] = (value >> 8u32) as uint8;
+        data[offset + 2u] = (value >> 16u32) as uint8;
+        data[offset + 3u] = (value >> 24u32) as uint8;
+    }
+
+    func writeU64LE(data: *uint8, offset: uint, value: uint64) {
+        data[offset + 0u] = value as uint8;
+        data[offset + 1u] = (value >> 8u32) as uint8;
+        data[offset + 2u] = (value >> 16u32) as uint8;
+        data[offset + 3u] = (value >> 24u32) as uint8;
+        data[offset + 4u] = (value >> 32u32) as uint8;
+        data[offset + 5u] = (value >> 40u32) as uint8;
+        data[offset + 6u] = (value >> 48u32) as uint8;
+        data[offset + 7u] = (value >> 56u32) as uint8;
+    }
+
+    func roundConstant(round: uint) -> uint32 {
+        if round == 0u { return 0xD76AA478u32; }
+        if round == 1u { return 0xE8C7B756u32; }
+        if round == 2u { return 0x242070DBu32; }
+        if round == 3u { return 0xC1BDCEEEu32; }
+        if round == 4u { return 0xF57C0FAFu32; }
+        if round == 5u { return 0x4787C62Au32; }
+        if round == 6u { return 0xA8304613u32; }
+        if round == 7u { return 0xFD469501u32; }
+        if round == 8u { return 0x698098D8u32; }
+        if round == 9u { return 0x8B44F7AFu32; }
+        if round == 10u { return 0xFFFF5BB1u32; }
+        if round == 11u { return 0x895CD7BEu32; }
+        if round == 12u { return 0x6B901122u32; }
+        if round == 13u { return 0xFD987193u32; }
+        if round == 14u { return 0xA679438Eu32; }
+        if round == 15u { return 0x49B40821u32; }
+        if round == 16u { return 0xF61E2562u32; }
+        if round == 17u { return 0xC040B340u32; }
+        if round == 18u { return 0x265E5A51u32; }
+        if round == 19u { return 0xE9B6C7AAu32; }
+        if round == 20u { return 0xD62F105Du32; }
+        if round == 21u { return 0x02441453u32; }
+        if round == 22u { return 0xD8A1E681u32; }
+        if round == 23u { return 0xE7D3FBC8u32; }
+        if round == 24u { return 0x21E1CDE6u32; }
+        if round == 25u { return 0xC33707D6u32; }
+        if round == 26u { return 0xF4D50D87u32; }
+        if round == 27u { return 0x455A14EDu32; }
+        if round == 28u { return 0xA9E3E905u32; }
+        if round == 29u { return 0xFCEFA3F8u32; }
+        if round == 30u { return 0x676F02D9u32; }
+        if round == 31u { return 0x8D2A4C8Au32; }
+        if round == 32u { return 0xFFFA3942u32; }
+        if round == 33u { return 0x8771F681u32; }
+        if round == 34u { return 0x6D9D6122u32; }
+        if round == 35u { return 0xFDE5380Cu32; }
+        if round == 36u { return 0xA4BEEA44u32; }
+        if round == 37u { return 0x4BDECFA9u32; }
+        if round == 38u { return 0xF6BB4B60u32; }
+        if round == 39u { return 0xBEBFBC70u32; }
+        if round == 40u { return 0x289B7EC6u32; }
+        if round == 41u { return 0xEAA127FAu32; }
+        if round == 42u { return 0xD4EF3085u32; }
+        if round == 43u { return 0x04881D05u32; }
+        if round == 44u { return 0xD9D4D039u32; }
+        if round == 45u { return 0xE6DB99E5u32; }
+        if round == 46u { return 0x1FA27CF8u32; }
+        if round == 47u { return 0xC4AC5665u32; }
+        if round == 48u { return 0xF4292244u32; }
+        if round == 49u { return 0x432AFF97u32; }
+        if round == 50u { return 0xAB9423A7u32; }
+        if round == 51u { return 0xFC93A039u32; }
+        if round == 52u { return 0x655B59C3u32; }
+        if round == 53u { return 0x8F0CCC92u32; }
+        if round == 54u { return 0xFFEFF47Du32; }
+        return 0x85845DD1u32;
+    }
+
+    func processMd5Block(block: *const uint8, h0: *uint32, h1: *uint32, h2: *uint32, h3: *uint32) {
+        var m: uint32[16];
+        var k: uint32[64];
+        var i: uint = 0u;
+        while i < 16u {
+            m[i] = readU32LE(block, i * 4u);
+            i += 1u;
+        }
+
+        k[0u] = 0xD76AA478u32;
+        k[1u] = 0xE8C7B756u32;
+        k[2u] = 0x242070DBu32;
+        k[3u] = 0xC1BDCEEEu32;
+        k[4u] = 0xF57C0FAFu32;
+        k[5u] = 0x4787C62Au32;
+        k[6u] = 0xA8304613u32;
+        k[7u] = 0xFD469501u32;
+        k[8u] = 0x698098D8u32;
+        k[9u] = 0x8B44F7AFu32;
+        k[10u] = 0xFFFF5BB1u32;
+        k[11u] = 0x895CD7BEu32;
+        k[12u] = 0x6B901122u32;
+        k[13u] = 0xFD987193u32;
+        k[14u] = 0xA679438Eu32;
+        k[15u] = 0x49B40821u32;
+        k[16u] = 0xF61E2562u32;
+        k[17u] = 0xC040B340u32;
+        k[18u] = 0x265E5A51u32;
+        k[19u] = 0xE9B6C7AAu32;
+        k[20u] = 0xD62F105Du32;
+        k[21u] = 0x02441453u32;
+        k[22u] = 0xD8A1E681u32;
+        k[23u] = 0xE7D3FBC8u32;
+        k[24u] = 0x21E1CDE6u32;
+        k[25u] = 0xC33707D6u32;
+        k[26u] = 0xF4D50D87u32;
+        k[27u] = 0x455A14EDu32;
+        k[28u] = 0xA9E3E905u32;
+        k[29u] = 0xFCEFA3F8u32;
+        k[30u] = 0x676F02D9u32;
+        k[31u] = 0x8D2A4C8Au32;
+        k[32u] = 0xFFFA3942u32;
+        k[33u] = 0x8771F681u32;
+        k[34u] = 0x6D9D6122u32;
+        k[35u] = 0xFDE5380Cu32;
+        k[36u] = 0xA4BEEA44u32;
+        k[37u] = 0x4BDECFA9u32;
+        k[38u] = 0xF6BB4B60u32;
+        k[39u] = 0xBEBFBC70u32;
+        k[40u] = 0x289B7EC6u32;
+        k[41u] = 0xEAA127FAu32;
+        k[42u] = 0xD4EF3085u32;
+        k[43u] = 0x04881D05u32;
+        k[44u] = 0xD9D4D039u32;
+        k[45u] = 0xE6DB99E5u32;
+        k[46u] = 0x1FA27CF8u32;
+        k[47u] = 0xC4AC5665u32;
+        k[48u] = 0xF4292244u32;
+        k[49u] = 0x432AFF97u32;
+        k[50u] = 0xAB9423A7u32;
+        k[51u] = 0xFC93A039u32;
+        k[52u] = 0x655B59C3u32;
+        k[53u] = 0x8F0CCC92u32;
+        k[54u] = 0xFFEFF47Du32;
+        k[55u] = 0x85845DD1u32;
+        k[56u] = 0x6FA87E4Fu32;
+        k[57u] = 0xFE2CE6E0u32;
+        k[58u] = 0xA3014314u32;
+        k[59u] = 0x4E0811A1u32;
+        k[60u] = 0xF7537E82u32;
+        k[61u] = 0xBD3AF235u32;
+        k[62u] = 0x2AD7D2BBu32;
+        k[63u] = 0xEB86D391u32;
+
+        var a = *h0;
+        var b = *h1;
+        var c = *h2;
+        var d = *h3;
+
+        i = 0u;
+        while i < 64u {
+            let fVal = f(b, c, d, i);
+            let gVal = gIndex(i);
+            let temp = d;
+            let nextB = b + rotl(a + fVal + k[i] + m[gVal], shiftAmount(i));
+            d = c;
+            c = b;
+            b = nextB;
+            a = temp;
+            i += 1u;
+        }
+
+        *h0 += a;
+        *h1 += b;
+        *h2 += c;
+        *h3 += d;
+    }
+
+    func hashMd5Bytes(message: *const uint8, msgLen: uint) -> String {
+            var a: uint32 = 0x67452301u32;
+            var b: uint32 = 0xEFCDAB89u32;
+            var c: uint32 = 0x98BADCFEu32;
+            var d: uint32 = 0x10325476u32;
+
+            let fullBlocks = msgLen / BlockSize;
+            var blockIndex: uint = 0u;
+            while blockIndex < fullBlocks {
+                let offset = blockIndex * BlockSize;
+                processMd5Block(message + offset, &a, &b, &c, &d);
+                blockIndex += 1u;
+            }
+
+            let rem = msgLen % BlockSize;
+            var tail: uint8[128];
+            var zeroI: uint = 0u;
+            while zeroI < 128u {
+                tail[zeroI] = 0u8;
+                zeroI += 1u;
+            }
+
+            var remI: uint = 0u;
+            while remI < rem {
+                tail[remI] = message[fullBlocks * BlockSize + remI];
+                remI += 1u;
+            }
+            tail[rem] = 0x80u8;
+
+            let bitLen = (msgLen as uint64) * 8u64;
+            if rem < 56u {
+                writeU64LE(tail.data, 56u, bitLen);
+                processMd5Block(tail.data as *const uint8, &a, &b, &c, &d);
+            } else {
+                writeU64LE((tail.data as uint64 + 64u) as *uint8, 56u, bitLen);
+                processMd5Block(tail.data as *const uint8, &a, &b, &c, &d);
+                processMd5Block((tail.data as uint64 + 64u) as *const uint8, &a, &b, &c, &d);
+            }
+
+            var digest: uint8[16];
+            writeU32LE(digest.data, 0u, a);
+            writeU32LE(digest.data, 4u, b);
+            writeU32LE(digest.data, 8u, c);
+            writeU32LE(digest.data, 12u, d);
+
+            return Hex::EncodeBytes(digest.data as *const char8, DigestSize);
+    }
+
+    extend Md5 {
+        func Hash(message: char8[]) -> String {
+            return hashMd5Bytes(message.data as *const uint8, message.length);
+        }
+    }
+}
