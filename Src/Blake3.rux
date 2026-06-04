@@ -1,0 +1,186 @@
+/*
+    Rux standard library
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+import Std::Hex;
+
+module Std::Hash::Blake3 {
+    const BlockSize: uint = 64u;
+    const DigestSize: uint = 32u;
+
+    struct Blake3 {}
+
+    func rotr(x: uint32, n: uint32) -> uint32 {
+        return (x >> n) | (x << (32u32 - n));
+    }
+
+    func readU32LE(data: *const uint8, offset: uint) -> uint32 {
+        return (data[offset + 0u] as uint32)
+            | ((data[offset + 1u] as uint32) << 8u32)
+            | ((data[offset + 2u] as uint32) << 16u32)
+            | ((data[offset + 3u] as uint32) << 24u32);
+    }
+
+    func writeU32LE(data: *uint8, offset: uint, value: uint32) {
+        data[offset + 0u] = value as uint8;
+        data[offset + 1u] = (value >> 8u32) as uint8;
+        data[offset + 2u] = (value >> 16u32) as uint8;
+        data[offset + 3u] = (value >> 24u32) as uint8;
+    }
+
+    func G(v: *uint32, a: uint, b: uint, c: uint, d: uint, mx: uint32, my: uint32) {
+        v[a] = v[a] + v[b] + mx;
+        v[d] = rotr(v[d] ^ v[a], 16u32);
+        v[c] = v[c] + v[d];
+        v[b] = rotr(v[b] ^ v[c], 12u32);
+        v[a] = v[a] + v[b] + my;
+        v[d] = rotr(v[d] ^ v[a], 8u32);
+        v[c] = v[c] + v[d];
+        v[b] = rotr(v[b] ^ v[c], 7u32);
+    }
+
+    func round(v: *uint32, m: *uint32) {
+        G(v, 0u, 4u, 8u, 12u, m[0u], m[1u]);
+        G(v, 1u, 5u, 9u, 13u, m[2u], m[3u]);
+        G(v, 2u, 6u, 10u, 14u, m[4u], m[5u]);
+        G(v, 3u, 7u, 11u, 15u, m[6u], m[7u]);
+        G(v, 0u, 5u, 10u, 15u, m[8u], m[9u]);
+        G(v, 1u, 6u, 11u, 12u, m[10u], m[11u]);
+        G(v, 2u, 7u, 8u, 13u, m[12u], m[13u]);
+        G(v, 3u, 4u, 9u, 14u, m[14u], m[15u]);
+    }
+
+    func permute(m: *uint32) {
+        let p0 = m[0u]; let p1 = m[1u]; let p2 = m[2u]; let p3 = m[3u];
+        let p4 = m[4u]; let p5 = m[5u]; let p6 = m[6u]; let p7 = m[7u];
+        let p8 = m[8u]; let p9 = m[9u]; let p10 = m[10u]; let p11 = m[11u];
+        let p12 = m[12u]; let p13 = m[13u]; let p14 = m[14u]; let p15 = m[15u];
+        m[0u] = p2;  m[1u] = p6;  m[2u] = p3;  m[3u] = p10;
+        m[4u] = p7;  m[5u] = p0;  m[6u] = p4;  m[7u] = p13;
+        m[8u] = p1;  m[9u] = p11; m[10u] = p12; m[11u] = p5;
+        m[12u] = p9; m[13u] = p14; m[14u] = p15; m[15u] = p8;
+    }
+
+    func compress(cv: *uint32, blockWords: *uint32, counter: uint64, blockLen: uint32, flags: uint32) {
+        var v: uint32[16];
+        v[0] = cv[0]; v[1] = cv[1]; v[2] = cv[2]; v[3] = cv[3];
+        v[4] = cv[4]; v[5] = cv[5]; v[6] = cv[6]; v[7] = cv[7];
+        v[8] = 0x6A09E667; v[9] = 0xBB67AE85; v[10] = 0x3C6EF372; v[11] = 0xA54FF53A;
+        v[12] = counter as uint32; v[13] = (counter >> 32u32) as uint32;
+        v[14] = blockLen; v[15] = flags;
+
+        var m: uint32[16];
+        var mi: uint = 0u;
+        while mi < 16u {
+            m[mi] = blockWords[mi];
+            mi += 1u;
+        }
+
+        var roundI: uint = 0u;
+        while roundI < 7u {
+            round(v.data, m.data);
+            permute(m.data);
+            roundI += 1u;
+        }
+
+        cv[0] = v[0] ^ v[8];
+        cv[1] = v[1] ^ v[9];
+        cv[2] = v[2] ^ v[10];
+        cv[3] = v[3] ^ v[11];
+        cv[4] = v[4] ^ v[12];
+        cv[5] = v[5] ^ v[13];
+        cv[6] = v[6] ^ v[14];
+        cv[7] = v[7] ^ v[15];
+    }
+
+    func hashBytesImpl(message: *const uint8, msgLen: uint) -> String {
+        var cv: uint32[8];
+        cv[0] = 0x6A09E667; cv[1] = 0xBB67AE85;
+        cv[2] = 0x3C6EF372; cv[3] = 0xA54FF53A;
+        cv[4] = 0x510E527F; cv[5] = 0x9B05688C;
+        cv[6] = 0x1F83D9AB; cv[7] = 0x5BE0CD19;
+
+        var buf: uint8[64];
+        var bufLen: uint = 0u;
+        var blocksCompressed: uint = 0u;
+
+        var zi: uint = 0u;
+        while zi < 64u {
+            buf[zi] = 0u8 as uint8;
+            zi += 1u;
+        }
+
+        var offset: uint = 0u;
+        while offset < msgLen {
+            let space = 64u - bufLen;
+            let take = space < msgLen - offset ? space : msgLen - offset;
+
+            var ci: uint = 0u;
+            while ci < take {
+                buf[bufLen + ci] = message[offset + ci];
+                ci += 1u;
+            }
+            bufLen += take;
+            offset += take;
+
+            if bufLen == 64u {
+                var blockWords: uint32[16];
+                var wi: uint = 0u;
+                while wi < 16u {
+                    blockWords[wi] = readU32LE(buf.data as *const uint8, wi * 4u);
+                    wi += 1u;
+                }
+
+                var flags: uint32 = 0u32;
+                if blocksCompressed == 0u {
+                    flags |= 1u32;
+                }
+
+                compress(cv.data, blockWords.data, 0u64, 64u32, flags);
+                blocksCompressed += 1u;
+
+                var zi2: uint = 0u;
+                while zi2 < 64u {
+                    buf[zi2] = 0u8 as uint8;
+                    zi2 += 1u;
+                }
+                bufLen = 0u;
+            }
+        }
+
+        var outBlockWords: uint32[16];
+        var owi: uint = 0u;
+        while owi < 16u {
+            outBlockWords[owi] = readU32LE(buf.data as *const uint8, owi * 4u);
+            owi += 1u;
+        }
+
+        var outFlags: uint32 = 0u32;
+        if blocksCompressed == 0u {
+            outFlags |= 1u32;
+        }
+        outFlags |= 2u32;
+
+        compress(cv.data, outBlockWords.data, 0u64, bufLen as uint32, outFlags | 8u32);
+
+        var digest: uint8[32];
+        writeU32LE(digest.data, 0u, cv[0]);
+        writeU32LE(digest.data, 4u, cv[1]);
+        writeU32LE(digest.data, 8u, cv[2]);
+        writeU32LE(digest.data, 12u, cv[3]);
+        writeU32LE(digest.data, 16u, cv[4]);
+        writeU32LE(digest.data, 20u, cv[5]);
+        writeU32LE(digest.data, 24u, cv[6]);
+        writeU32LE(digest.data, 28u, cv[7]);
+
+        return Hex::EncodeBytes(digest.data as *const char8, DigestSize);
+    }
+
+    extend Blake3 {
+        func Hash(message: char8[]) -> String {
+            return hashBytesImpl(message.data as *const uint8, message.length);
+        }
+    }
+}
