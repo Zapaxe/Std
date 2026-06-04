@@ -1,0 +1,154 @@
+/*
+    Rux standard library
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+import Std::Memory::{ Alloc, Free };
+
+module Std::Base64 {
+    func base64Char(idx: uint8) -> char8 {
+        if idx < 26 {
+            return (65u + idx) as char8;
+        }
+        if idx < 52 {
+            return (97u + idx - 26u) as char8;
+        }
+        if idx < 62 {
+            return (48u + idx - 52u) as char8;
+        }
+        if idx == 62 {
+            return '+' as char8;
+        }
+        return '/' as char8;
+    }
+
+    func base64Index(ch: char8) -> int {
+        if ch >= 'A' && ch <= 'Z' {
+            return (ch as int) - 65;
+        }
+        if ch >= 'a' && ch <= 'z' {
+            return (ch as int) - 71;
+        }
+        if ch >= '0' && ch <= '9' {
+            return (ch as int) + 4;
+        }
+        if ch == '+' {
+            return 62;
+        }
+        if ch == '/' {
+            return 63;
+        }
+        return -1;
+    }
+
+    func encodeBytesImpl(bytes: *const char8, length: uint) -> String {
+        if length == 0 {
+            return String::New();
+        }
+
+        let outLen = ((length + 2u) / 3u) * 4u;
+        let out = Alloc(outLen) as *char8;
+        if out == null {
+            return String::New();
+        }
+
+        var i: uint = 0u;
+        var o: uint = 0u;
+        while i < length {
+            let b0 = (*(bytes + i)) as uint8;
+            let b1: uint8 = (i + 1u < length ? (*(bytes + i + 1u)) as uint8 : 0u as uint8);
+            let b2: uint8 = (i + 2u < length ? (*(bytes + i + 2u)) as uint8 : 0u as uint8);
+
+            let idx0 = (b0 >> 2) & 0x3F;
+            let idx1 = ((b0 << 4) | (b1 >> 4)) & 0x3F;
+            let idx2 = ((b1 << 2) | (b2 >> 6)) & 0x3F;
+            let idx3 = b2 & 0x3F;
+
+            *(out + o) = base64Char(idx0);
+            *(out + o + 1u) = base64Char(idx1);
+
+            if i + 1u < length {
+                *(out + o + 2u) = base64Char(idx2);
+            } else {
+                *(out + o + 2u) = '=' as char8;
+            }
+
+            if i + 2u < length {
+                *(out + o + 3u) = base64Char(idx3);
+            } else {
+                *(out + o + 3u) = '=' as char8;
+            }
+
+            i += 3u;
+            o += 4u;
+        }
+
+        return String { data: out, length: outLen };
+    }
+
+    func EncodeBase64(data: *const char8, length: uint) -> String {
+        return encodeBytesImpl(data, length);
+    }
+
+    func decodeBytesImpl(base64: *const char8, length: uint) -> String {
+        if length == 0 {
+            return String::New();
+        }
+        if (length & 3u) != 0u {
+            Fatal("base64 input length must be a multiple of 4");
+        }
+
+        let padding = (*(base64 + length - 1u) == ('=' as char8) ? 1u : 0u) +
+                      (length > 1u && *(base64 + length - 2u) == ('=' as char8) ? 1u : 0u);
+
+        let outLen = (length / 4u) * 3u - padding;
+        let out = Alloc(outLen) as *uint8;
+        if out == null {
+            return String::New();
+        }
+
+        var i: uint = 0u;
+        var o: uint = 0u;
+        while i < length {
+            let c0 = base64Index(*(base64 + i));
+            let c1 = base64Index(*(base64 + i + 1u));
+            let c2 = base64Index(*(base64 + i + 2u));
+            let c3 = base64Index(*(base64 + i + 3u));
+
+            if c0 < 0 || c1 < 0 {
+                Free(out as *opaque);
+                Fatal("base64 input contains invalid characters");
+            }
+
+            let b0 = ((c0 as uint8) << 2) | ((c1 as uint8) >> 4);
+
+            if o < outLen {
+                *(out + o) = b0;
+            }
+
+            if c2 >= 0 {
+                let b1 = ((c1 as uint8) << 4) | ((c2 as uint8) >> 2);
+                if o + 1u < outLen {
+                    *(out + o + 1u) = b1;
+                }
+
+                if c3 >= 0 {
+                    let b2 = ((c2 as uint8) << 6) | (c3 as uint8);
+                    if o + 2u < outLen {
+                        *(out + o + 2u) = b2;
+                    }
+                }
+            }
+
+            i += 4u;
+            o += 3u;
+        }
+
+        return String { data: out as *char8, length: outLen };
+    }
+
+    func DecodeBase64(data: *const char8, length: uint) -> String {
+        return decodeBytesImpl(data, length);
+    }
+}
