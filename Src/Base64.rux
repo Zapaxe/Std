@@ -24,19 +24,19 @@ module Std::Base64 {
     }
 
     func base64Index(ch: char8) -> int {
-        if ch >= 'A' && ch <= 'Z' {
+        if ch >= c8'A' && ch <= c8'Z' {
             return (ch as int) - 65;
         }
-        if ch >= 'a' && ch <= 'z' {
+        if ch >= c8'a' && ch <= c8'z' {
             return (ch as int) - 71;
         }
-        if ch >= '0' && ch <= '9' {
+        if ch >= c8'0' && ch <= c8'9' {
             return (ch as int) + 4;
         }
-        if ch == '+' {
+        if ch == c8'+' {
             return 62;
         }
-        if ch == '/' {
+        if ch == c8'/' {
             return 63;
         }
         return -1;
