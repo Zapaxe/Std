@@ -81,7 +81,7 @@ module Std {
             for i in 0..self.length {
                 let ch = *(self.data + i);
 
-                if ch >= 'a' && ch <= 'z' {
+                if ch >= c8'a' && ch <= c8'z' {
                     *(ptr + i) = ((ch as int8) - 32) as char8;  
                 } else {
                     *(ptr + i) = ch;
@@ -100,7 +100,7 @@ module Std {
             for i in 0..self.length {
                 let ch = *(self.data + i);
 
-                if ch >= 'A' && ch <= 'Z' {
+                if ch >= c8'A' && ch <= c8'Z' {
                     *(ptr + i) = ((ch as int8) + 32) as char8;
                 } else {
                     *(ptr + i) = ch;
@@ -125,7 +125,7 @@ module Std {
 
             let first = *(self.data + 0);
 
-            if first >= 'a' && first <= 'z' {
+            if first >= c8'a' && first <= c8'z' {
                 *(ptr + 0) = ((first as int8) - 32) as char8;
             } else {
                 *(ptr + 0) = first;
@@ -134,7 +134,7 @@ module Std {
             for i in 1..self.length {
                 let ch = *(self.data + i);
 
-                if ch >= 'A' && ch <= 'Z' {
+                if ch >= c8'A' && ch <= c8'Z' {
                     *(ptr + i) = ((ch as int8) + 32) as char8;
                 } else {
                     *(ptr + i) = ch;
@@ -148,12 +148,12 @@ module Std {
         }
 
         func Trim(self) -> String {
-            var first = 0;
+            var first = 0u;
 
             while first < self.length {
                 let ch = *(self.data + first);
 
-                if ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' {
+                if ch != c8' ' && ch != c8'\t' && ch != c8'\n' && ch != c8'\r' {
                     break;
                 }
 
@@ -167,26 +167,26 @@ module Std {
                 };
             }
 
-            var last = self.length - 1;
+            var last = self.length - 1u;
 
             while last > first {
                 let ch = *(self.data + last);
 
-                if ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' {
+                if ch != c8' ' && ch != c8'\t' && ch != c8'\n' && ch != c8'\r' {
                     break;
                 }
 
-                last = last - 1;
+                last = last - 1u;
             }
 
-            let newLength = last - first + 1;
+            let newLength = last - first + 1u;
             let ptr = Alloc(newLength) as *char8;
 
-            var j = 0;
+            var j = 0u;
 
-            for i in first..(last + 1) {
+            for i in first..(last + 1u) {
                 *(ptr + j) = *(self.data + i);
-                j = j + 1;
+                j = j + 1u;
             }
 
             return String {
@@ -197,17 +197,17 @@ module Std {
 
         func Split(self, delimiter: char8) -> StringArray {
 
-            var count = 1 as uint;
+            var count = 1u;
 
             for i in 0..self.length {
                 if *(self.data + i) == delimiter {
-                    count += 1;
+                    count += 1u;
                 }
             }
             let ptr = Alloc(count) as *String;
 
-            var tokenStart = 0;
-            var ptrIndex = 0;
+            var tokenStart = 0u;
+            var ptrIndex = 0u;
 
             for i in 0..self.length {
 
@@ -215,11 +215,11 @@ module Std {
 
                     ptr[ptrIndex] = String {
                         data: self.data + tokenStart,
-                        length: (i - tokenStart) as uint
+                        length: (i as uint - tokenStart)
                     };
 
-                    ptrIndex += 1;
-                    tokenStart = i + 1;
+                    ptrIndex += 1u;
+                    tokenStart = (i + 1) as uint;
                 }
             }
 
@@ -250,7 +250,7 @@ module Std {
 
             let first = *(ptr + 0);
 
-            if first >= 'a' && first <= 'z' {
+            if first >= c8'a' && first <= c8'z' {
                 *(ptr + 0) = ((first as int8) - 32) as char8;
             }
 
@@ -259,18 +259,18 @@ module Std {
             for i in 0..self.length {
                 let ch = *(ptr + i);
 
-                if ch == (' ') as char8 {
+                if ch == c8' ' {
                     newWord = true;
                 }
                 else {
                     if newWord {
-                        if ch >= 'a' && ch <= 'z' {
+                        if ch >= c8'a' && ch <= c8'z' {
                             *(ptr + i) = ((ch as int8) - 32) as char8;
                         }
                         newWord = false;
                     }
                     else {
-                        if ch >= 'A' && ch <= 'Z' {
+                        if ch >= c8'A' && ch <= c8'Z' {
                             *(ptr + i) = ((ch as int8) + 32) as char8;
                         }
                     }
@@ -320,7 +320,7 @@ module Std {
         func ToUpperInPlace(self) {
             for i in 0..self.length {
                 let ch = *(self.data + i);
-                if ch >= 'a' && ch <= 'z' {
+                if ch >= c8'a' && ch <= c8'z' {
                     *(self.data + i) = ((ch as int8) - 32) as char8;  
                 } 
             }
@@ -330,7 +330,7 @@ module Std {
             for i in 0..self.length {
                 let ch = *(self.data + i);
 
-                if ch >= 'A' && ch <= 'Z' {
+                if ch >= c8'A' && ch <= c8'Z' {
                     *(self.data + i) = ((ch as int8) + 32) as char8;
                 }
             }
@@ -343,14 +343,14 @@ module Std {
 
             let first = *(self.data + 0);
 
-            if first >= 'a' && first <= 'z' {
+            if first >= c8'a' && first <= c8'z' {
                 *(self.data + 0) = ((first as int8) - 32) as char8;
             }
 
             for i in 1..self.length {
                 let ch = *(self.data + i);
 
-                if ch >= 'A' && ch <= 'Z' {
+                if ch >= c8'A' && ch <= c8'Z' {
                     *(self.data + i) = ((ch as int8) + 32) as char8;
                 }
             }
@@ -361,17 +361,17 @@ module Std {
                 return;
             }
 
-            var first = 0;
+            var first = 0u;
 
             while first < self.length {
                 let ch = *(self.data + first);
 
-                if ch != ' ' && ch != '\t' &&
-                ch != '\n' && ch != '\r' {
+                if ch != c8' ' && ch != c8'\t' &&
+                ch != c8'\n' && ch != c8'\r' {
                     break;
                 }
 
-                first = first + 1;
+                first = first + 1u;
             }
 
             if first == self.length {
@@ -379,26 +379,26 @@ module Std {
                 return;
             }
 
-            var last = self.length - 1;
+            var last = self.length - 1u;
 
             while last > first {
                 let ch = *(self.data + last);
 
-                if ch != ' ' && ch != '\t' &&
-                ch != '\n' && ch != '\r' {
+                if ch != c8' ' && ch != c8'\t' &&
+                ch != c8'\n' && ch != c8'\r' {
                     break;
                 }
 
-                last = last - 1;
+                last = last - 1u;
             }
 
-            let newLength = last - first + 1;
+            let newLength = last - first + 1u;
 
-            var j = 0;
+            var j = 0u;
 
-            for i in first..(last + 1) {
+            for i in first..(last + 1u) {
                 *(self.data + j) = *(self.data + i);
-                j = j + 1;
+                j = j + 1u;
             }
 
             self.length = newLength;
@@ -407,7 +407,7 @@ module Std {
         func TitleCaseInPlace(self) {
             let first = *(self.data + 0);
 
-            if first >= 'a' && first <= 'z' {
+            if first >= c8'a' && first <= c8'z' {
                 *(self.data + 0) = ((first as int8) - 32) as char8;
             }
 
@@ -416,18 +416,18 @@ module Std {
             for i in 0..self.length {
                 let ch = *(self.data + i);
 
-                if ch == (' ') as char8 {
+                if ch == c8' ' {
                     newWord = true;
                 }
                 else {
                     if newWord {
-                        if ch >= 'a' && ch <= 'z' {
+                        if ch >= c8'a' && ch <= c8'z' {
                             *(self.data + i) = ((ch as int8) - 32) as char8;
                         }
                         newWord = false;
                     }
                     else {
-                        if ch >= 'A' && ch <= 'Z' {
+                        if ch >= c8'A' && ch <= c8'Z' {
                             *(self.data + i) = ((ch as int8) + 32) as char8;
                         }
                     }
@@ -441,17 +441,17 @@ module Std {
 
 
         func Repeat(self, count: uint) -> String {
-            if count == 0 || self.length == 0 {
+            if count == 0u || self.length == 0 {
                 return String::New();
             }
-            if count == 1 {
+            if count == 1u {
                 return self.Clone();
             }
             let builder = StringBuilder::WithCapacity(self.length * count);
-            var i:uint = 0;
+            var i: uint = 0u;
             while i < count {
                 builder.Append(*self);
-                i += 1;
+                i += 1u;
             }
             return builder.IntoString();
         }
