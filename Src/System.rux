@@ -22,8 +22,8 @@ import Linux::{
     SYS_EXIT
 };
 
-/*@[Target("macOS")]
-import MacOS::SomeFunction;*/
+@[Target("MacOS")]
+import MacOS::ExitProcess;
 
 @[Target("Windows")]
 import Windows::ExitProcess;
@@ -46,6 +46,7 @@ module Std {
 
     @[Target("MacOS")]
     func Exit(code: uint32) {
+        ExitProcess(code);
     }
 
     @[Target("Windows")]
