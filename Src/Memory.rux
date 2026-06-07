@@ -37,12 +37,12 @@ import Linux::{
     PROT_WRITE
 };
 
-/*@[Target("MacOS")]
+@[Target("MacOS")]
 import MacOS::{
-    Func1,
-    Func2,
-    Func3
-};*/
+    GetProcessHeap,
+    HeapAlloc,
+    HeapFree
+};
 
 @[Target("Windows")]
 import Windows::{
@@ -100,7 +100,7 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Alloc(size: uint) -> *opaque {
-        return null;
+        return HeapAlloc(GetProcessHeap(), 0, size);
     }
 
     @[Target("Windows")]
@@ -219,6 +219,7 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Free(ptr: *opaque) {
+        HeapFree(GetProcessHeap(), 0, ptr);
     }
 
     @[Target("Windows")]
