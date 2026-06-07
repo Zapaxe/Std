@@ -81,10 +81,29 @@ struct SystemTime {
     milliseconds: uint16;
 }
 
+@[Target("MacOS")]
+struct SystemTime {
+    year: uint16;
+    month: uint16;
+    dayOfWeek: uint16;
+    day: uint16;
+    hour: uint16;
+    minute: uint16;
+    second: uint16;
+    milliseconds: uint16;
+}
+
 
 @[Target("Windows")]
 func SleepMs(ms: uint32) {
     Sleep(ms);
+}
+
+// Placeholder: the macOS Mach-O linker exposes no sleep/clock thunk yet, so
+// Std::Time is a no-op stub on macOS until those thunks are added to the
+// compiler. Implemented just enough for Std to compile and link on macOS.
+@[Target("MacOS")]
+func SleepMs(ms: uint32) {
 }
 
 @[Target("BSD")]
@@ -160,6 +179,12 @@ func TickMs() -> uint64 {
     return (ts.tv_sec as uint64 * 1000u64) + (ts.tv_nsec as uint64 / 1000000u64);
 }
 
+// Placeholder until a macOS clock thunk exists (see SleepMs note).
+@[Target("MacOS")]
+func TickMs() -> uint64 {
+    return 0u64;
+}
+
 
 @[Target("BSD")]
 func LocalTime() -> SystemTime {
@@ -183,6 +208,12 @@ func LocalTime() -> SystemTime {
 @[Target("Linux")]
 func LocalTime() -> SystemTime {
     return UtcTime();
+}
+
+// Placeholder until a macOS clock thunk exists (see SleepMs note).
+@[Target("MacOS")]
+func LocalTime() -> SystemTime {
+    return SystemTime { year: 0u16, month: 0u16, dayOfWeek: 0u16, day: 0u16, hour: 0u16, minute: 0u16, second: 0u16, milliseconds: 0u16 };
 }
 
 @[Target("BSD")]
@@ -235,6 +266,12 @@ func UtcTime() -> SystemTime {
     var time = SystemTime { year: 0u16, month: 0u16, dayOfWeek: 0u16, day: 0u16, hour: 0u16, minute: 0u16, second: 0u16, milliseconds: 0u16 };
     GetSystemTime(&time);
     return time;
+}
+
+// Placeholder until a macOS clock thunk exists (see SleepMs note).
+@[Target("MacOS")]
+func UtcTime() -> SystemTime {
+    return SystemTime { year: 0u16, month: 0u16, dayOfWeek: 0u16, day: 0u16, hour: 0u16, minute: 0u16, second: 0u16, milliseconds: 0u16 };
 }
 
 @[Target("Linux")]
