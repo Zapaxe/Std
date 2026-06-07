@@ -37,12 +37,11 @@ import Linux::{
     PROT_WRITE
 };
 
-/*@[Target("MacOS")]
+@[Target("MacOS")]
 import MacOS::{
-    Func1,
-    Func2,
-    Func3
-};*/
+    GetProcessHeap,
+    HeapAlloc
+};
 
 @[Target("Windows")]
 import Windows::{
@@ -100,7 +99,15 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Alloc(size: uint) -> *opaque {
-        return null;
+        let total = size + HeaderSize;
+        let mapping = HeapAlloc(GetProcessHeap(), 0, total);
+        if mapping == null || (mapping as int64) == -1i64 {
+            return null;
+        }
+
+        let header = mapping as *uint;
+        *header = size;
+        return (header + 1) as *opaque;
     }
 
     @[Target("Windows")]
@@ -179,7 +186,25 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Realloc(ptr: *opaque, size: uint) -> *opaque {
-        return null;
+        if ptr == null {
+            return Alloc(size);
+        }
+        if size == 0 {
+            Free(ptr);
+            return null;
+        }
+
+        let header = (ptr as *uint) - 1;
+        let oldSize = *header;
+        let newPtr = Alloc(size);
+        if newPtr == null {
+            return null;
+        }
+
+        let copySize = oldSize < size ? oldSize : size;
+        Copy(newPtr, ptr, copySize);
+        Free(ptr);
+        return newPtr;
     }
 
     @[Target("Windows")]
@@ -219,6 +244,12 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Free(ptr: *opaque) {
+        if ptr == null {
+            return;
+        }
+        // The macOS Mach-O linker provides no munmap thunk yet, so the pages
+        // backing this block are not reclaimed. The size header written by
+        // Alloc is left in place for a future munmap-based implementation.
     }
 
     @[Target("Windows")]
@@ -258,6 +289,12 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Set(ptr: *opaque, size: uint, value: int32) {
+        let p = ptr as *char8;
+        var i: uint = 0;
+        while i < size {
+            *(p + i) = value as char8;
+            i++;
+        }
     }
 
     @[Target("Windows")]
@@ -282,6 +319,7 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Zero(ptr: *opaque, size: uint) {
+        Set(ptr, size, 0);
     }
 
     @[Target("Windows")]
@@ -333,6 +371,15 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Compare(lhs: *const opaque, rhs: *const opaque, length: uint) -> uint {
+        let l = lhs as *const char8;
+        let r = rhs as *const char8;
+        var i: uint = 0;
+        while i < length {
+            if *(l + i) != *(r + i) {
+                return i;
+            }
+            i++;
+        }
         return length;
     }
 
@@ -365,6 +412,13 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Copy(dest: *opaque, src: *const opaque, length: uint) {
+        let d = dest as *char8;
+        let s = src as *const char8;
+        var i: uint = 0;
+        while i < length {
+            *(d + i) = *(s + i);
+            i++;
+        }
     }
 
     @[Target("Linux")]
@@ -376,10 +430,6 @@ module Std::Memory {
             *(d + i) = *(s + i);
             i++;
         }
-    }
-
-    @[Target("MacOS")]
-    func Copy(dest: *opaque, src: *const opaque, length: uint) {
     }
 
     @[Target("Windows")]
