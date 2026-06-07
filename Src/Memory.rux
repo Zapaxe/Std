@@ -40,8 +40,7 @@ import Linux::{
 @[Target("MacOS")]
 import MacOS::{
     GetProcessHeap,
-    HeapAlloc,
-    HeapFree
+    HeapAlloc
 };
 
 @[Target("Windows")]
@@ -100,7 +99,15 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Alloc(size: uint) -> *opaque {
-        return HeapAlloc(GetProcessHeap(), 0, size);
+        let total = size + HeaderSize;
+        let mapping = HeapAlloc(GetProcessHeap(), 0, total);
+        if mapping == null || (mapping as int64) == -1i64 {
+            return null;
+        }
+
+        let header = mapping as *uint;
+        *header = size;
+        return (header + 1) as *opaque;
     }
 
     @[Target("Windows")]
@@ -179,7 +186,25 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Realloc(ptr: *opaque, size: uint) -> *opaque {
-        return null;
+        if ptr == null {
+            return Alloc(size);
+        }
+        if size == 0 {
+            Free(ptr);
+            return null;
+        }
+
+        let header = (ptr as *uint) - 1;
+        let oldSize = *header;
+        let newPtr = Alloc(size);
+        if newPtr == null {
+            return null;
+        }
+
+        let copySize = oldSize < size ? oldSize : size;
+        Copy(newPtr, ptr, copySize);
+        Free(ptr);
+        return newPtr;
     }
 
     @[Target("Windows")]
@@ -219,7 +244,12 @@ module Std::Memory {
 
     @[Target("MacOS")]
     func Free(ptr: *opaque) {
-        HeapFree(GetProcessHeap(), 0, ptr);
+        if ptr == null {
+            return;
+        }
+        // The macOS Mach-O linker provides no munmap thunk yet, so the pages
+        // backing this block are not reclaimed. The size header written by
+        // Alloc is left in place for a future munmap-based implementation.
     }
 
     @[Target("Windows")]
