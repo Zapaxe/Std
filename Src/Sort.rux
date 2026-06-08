@@ -11,9 +11,9 @@ module Std::Sort {
     // ─── Shared helpers ─────────────────────────────────────────
 
     func sortSwap(arr: *uint64, i: uint, j: uint) {
-        let t = *(arr + i);
+        let temp = *(arr + i);
         *(arr + i) = *(arr + j);
-        *(arr + j) = t;
+        *(arr + j) = temp;
     }
 
     func sort2(arr: *uint64, i: uint) {
@@ -35,13 +35,13 @@ module Std::Sort {
     }
 
     func sortMerge(arr: *uint64, temp: *uint64, left: uint, mid: uint, right: uint) {
-        let n1 = mid - left;
-        let n2 = right - mid;
+        let leftLen = mid - left;
+        let rightLen = right - mid;
         var i: uint = 0u;
         var j: uint = 0u;
         var k: uint = 0u;
 
-        while i < n1 && j < n2 {
+        while i < leftLen && j < rightLen {
             if *(arr + left + i) <= *(arr + mid + j) {
                 *(temp + k) = *(arr + left + i);
                 i += 1u;
@@ -52,13 +52,13 @@ module Std::Sort {
             k += 1u;
         }
 
-        while i < n1 {
+        while i < leftLen {
             *(temp + k) = *(arr + left + i);
             i += 1u;
             k += 1u;
         }
 
-        while j < n2 {
+        while j < rightLen {
             *(temp + k) = *(arr + mid + j);
             j += 1u;
             k += 1u;
@@ -140,31 +140,26 @@ module Std::Sort {
         }
     }
 
-    func mergeTo(from: *uint64, dest: *uint64, left: uint, mid: uint, right: uint) {
-        let a = from;
-        let b = dest;
-        let lo = left;
-        let m = mid;
-        let hi = right;
-        var i: uint = lo;
-        var j: uint = m;
+    func mergeTo(source: *uint64, dest: *uint64, left: uint, mid: uint, right: uint) {
+        var i: uint = left;
+        var j: uint = mid;
         var k: uint = 0u;
-        while i < m && j < hi {
-            if *(a + i) <= *(a + j) {
-                *(b + k) = *(a + i);
+        while i < mid && j < right {
+            if *(source + i) <= *(source + j) {
+                *(dest + k) = *(source + i);
                 i += 1u;
             } else {
-                *(b + k) = *(a + j);
+                *(dest + k) = *(source + j);
                 j += 1u;
             }
             k += 1u;
         }
-        while i < m {
-            *(b + k) = *(a + i);
+        while i < mid {
+            *(dest + k) = *(source + i);
             i += 1u; k += 1u;
         }
-        while j < hi {
-            *(b + k) = *(a + j);
+        while j < right {
+            *(dest + k) = *(source + j);
             j += 1u; k += 1u;
         }
     }
@@ -268,22 +263,22 @@ module Std::Sort {
         }
 
         let mid = left + len / 2u;
-        let lo = left;
-        let hi = right - 1u;
+        let leftIdx = left;
+        let rightIdx = right - 1u;
 
-        if *(arr + lo) > *(arr + mid) { sortSwap(arr, lo, mid); }
-        if *(arr + mid) > *(arr + hi) { sortSwap(arr, mid, hi); }
-        if *(arr + lo) > *(arr + mid) { sortSwap(arr, lo, mid); }
+        if *(arr + leftIdx) > *(arr + mid) { sortSwap(arr, leftIdx, mid); }
+        if *(arr + mid) > *(arr + rightIdx) { sortSwap(arr, mid, rightIdx); }
+        if *(arr + leftIdx) > *(arr + mid) { sortSwap(arr, leftIdx, mid); }
 
         let pivotIdx = mid;
-        let p = crumPartition(arr, left, right, pivotIdx);
+        let pivotPos = crumPartition(arr, left, right, pivotIdx);
 
-        if p - left < right - (p + 1u) {
-            crumsort(arr, left, p);
-            crumsort(arr, p + 1u, right);
+        if pivotPos - left < right - (pivotPos + 1u) {
+            crumsort(arr, left, pivotPos);
+            crumsort(arr, pivotPos + 1u, right);
         } else {
-            crumsort(arr, p + 1u, right);
-            crumsort(arr, left, p);
+            crumsort(arr, pivotPos + 1u, right);
+            crumsort(arr, left, pivotPos);
         }
     }
 

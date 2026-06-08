@@ -54,41 +54,41 @@ module Std::HashMap {
     }
 
     func hashKey(key: int) -> uint {
-        var h = key as uint;
-        h = (h ^ (h >> 30)) * 0xBF58476D1CE4E5B9;
-        h = (h ^ (h >> 27)) * 0x94D049BB133111EB;
-        h = h ^ (h >> 31);
-        return h;
+        var hash = key as uint;
+        hash = (hash ^ (hash >> 30)) * 0xBF58476D1CE4E5B9;
+        hash = (hash ^ (hash >> 27)) * 0x94D049BB133111EB;
+        hash = hash ^ (hash >> 31);
+        return hash;
     }
 
     func findSlot(data: *uint8, cap: uint, key: int) -> uint {
         let mask = cap - 1u;
-        let h = hashKey(key);
-        var idx = h & mask;
+        let hash = hashKey(key);
+        var idx = hash & mask;
         while isOccupied(data, idx) && readKey(data, idx) != key {
             idx = (idx + 1u) & mask;
         }
         return idx;
     }
 
-    func resize(m: *HashMap, newC: uint) {
-        let oldData = m.data;
-        let oldC = m.cap;
-        let newData = Alloc(newC * EntryBytes) as *uint8;
+    func resize(mapPtr: *HashMap, newCap: uint) {
+        let oldData = mapPtr.data;
+        let oldCap = mapPtr.cap;
+        let newData = Alloc(newCap * EntryBytes) as *uint8;
         if newData == null { return; }
-        Zero(newData as *opaque, newC * EntryBytes);
-        m.data = newData;
-        m.cap = newC;
-        m.count = 0u;
-        var i: uint = 0u;
-        while i < oldC {
-            if isOccupied(oldData, i) {
-                let key = readKey(oldData, i);
-                let val = readValue(oldData, i);
-                setNoResize(newData, newC, key, val);
-                m.count += 1u;
+        Zero(newData as *opaque, newCap * EntryBytes);
+        mapPtr.data = newData;
+        mapPtr.cap = newCap;
+        mapPtr.count = 0u;
+        var idx: uint = 0u;
+        while idx < oldCap {
+            if isOccupied(oldData, idx) {
+                let key = readKey(oldData, idx);
+                let val = readValue(oldData, idx);
+                setNoResize(newData, newCap, key, val);
+                mapPtr.count += 1u;
             }
-            i += 1u;
+            idx += 1u;
         }
         Free(oldData as *opaque);
     }
@@ -102,26 +102,26 @@ module Std::HashMap {
         writeValue(data, idx, value);
     }
 
-    func Init(m: *HashMap) {
-        let c = 16u;
-        let d = Alloc(c * EntryBytes) as *uint8;
-        if d != null {
-            Zero(d as *opaque, c * EntryBytes);
+    func Init(mapPtr: *HashMap) {
+        let initCap = 16u;
+        let newData = Alloc(initCap * EntryBytes) as *uint8;
+        if newData != null {
+            Zero(newData as *opaque, initCap * EntryBytes);
         }
-        m.data = d;
-        m.cap = c;
-        m.count = 0u;
+        mapPtr.data = newData;
+        mapPtr.cap = initCap;
+        mapPtr.count = 0u;
     }
 
-    func InitWithCap(m: *HashMap, capacity: uint) {
-        let c = capacity < 16u ? 16u : capacity;
-        let d = Alloc(c * EntryBytes) as *uint8;
-        if d != null {
-            Zero(d as *opaque, c * EntryBytes);
+    func InitWithCap(mapPtr: *HashMap, capacity: uint) {
+        let initCap = capacity < 16u ? 16u : capacity;
+        let newData = Alloc(initCap * EntryBytes) as *uint8;
+        if newData != null {
+            Zero(newData as *opaque, initCap * EntryBytes);
         }
-        m.data = d;
-        m.cap = c;
-        m.count = 0u;
+        mapPtr.data = newData;
+        mapPtr.cap = initCap;
+        mapPtr.count = 0u;
     }
 
     extend HashMap {

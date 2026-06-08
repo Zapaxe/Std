@@ -36,40 +36,40 @@ module Std::HashSet {
     }
 
     func hashKey(key: int) -> uint {
-        var h = key as uint;
-        h = (h ^ (h >> 30)) * 0xBF58476D1CE4E5B9;
-        h = (h ^ (h >> 27)) * 0x94D049BB133111EB;
-        h = h ^ (h >> 31);
-        return h;
+        var hash = key as uint;
+        hash = (hash ^ (hash >> 30)) * 0xBF58476D1CE4E5B9;
+        hash = (hash ^ (hash >> 27)) * 0x94D049BB133111EB;
+        hash = hash ^ (hash >> 31);
+        return hash;
     }
 
     func findSlot(data: *uint8, cap: uint, key: int) -> uint {
         let mask = cap - 1u;
-        let h = hashKey(key);
-        var idx = h & mask;
+        let hash = hashKey(key);
+        var idx = hash & mask;
         while isOccupied(data, idx) && readKey(data, idx) != key {
             idx = (idx + 1u) & mask;
         }
         return idx;
     }
 
-    func resize(s: *HashSet, newC: uint) {
-        let oldData = s.data;
-        let oldC = s.cap;
-        let newData = Alloc(newC * EntryBytes) as *uint8;
+    func resize(setPtr: *HashSet, newCap: uint) {
+        let oldData = setPtr.data;
+        let oldCap = setPtr.cap;
+        let newData = Alloc(newCap * EntryBytes) as *uint8;
         if newData == null { return; }
-        Zero(newData as *opaque, newC * EntryBytes);
-        s.data = newData;
-        s.cap = newC;
-        s.count = 0u;
-        var i: uint = 0u;
-        while i < oldC {
-            if isOccupied(oldData, i) {
-                let key = readKey(oldData, i);
-                insertNoResize(newData, newC, key);
-                s.count += 1u;
+        Zero(newData as *opaque, newCap * EntryBytes);
+        setPtr.data = newData;
+        setPtr.cap = newCap;
+        setPtr.count = 0u;
+        var idx: uint = 0u;
+        while idx < oldCap {
+            if isOccupied(oldData, idx) {
+                let key = readKey(oldData, idx);
+                insertNoResize(newData, newCap, key);
+                setPtr.count += 1u;
             }
-            i += 1u;
+            idx += 1u;
         }
         Free(oldData as *opaque);
     }
@@ -80,26 +80,26 @@ module Std::HashSet {
         writeKey(data, idx, key);
     }
 
-    func Init(s: *HashSet) {
-        let c = 16u;
-        let d = Alloc(c * EntryBytes) as *uint8;
-        if d != null {
-            Zero(d as *opaque, c * EntryBytes);
+    func Init(setPtr: *HashSet) {
+        let initCap = 16u;
+        let newData = Alloc(initCap * EntryBytes) as *uint8;
+        if newData != null {
+            Zero(newData as *opaque, initCap * EntryBytes);
         }
-        s.data = d;
-        s.cap = c;
-        s.count = 0u;
+        setPtr.data = newData;
+        setPtr.cap = initCap;
+        setPtr.count = 0u;
     }
 
-    func InitWithCap(s: *HashSet, capacity: uint) {
-        let c = capacity < 16u ? 16u : capacity;
-        let d = Alloc(c * EntryBytes) as *uint8;
-        if d != null {
-            Zero(d as *opaque, c * EntryBytes);
+    func InitWithCap(setPtr: *HashSet, capacity: uint) {
+        let initCap = capacity < 16u ? 16u : capacity;
+        let newData = Alloc(initCap * EntryBytes) as *uint8;
+        if newData != null {
+            Zero(newData as *opaque, initCap * EntryBytes);
         }
-        s.data = d;
-        s.cap = c;
-        s.count = 0u;
+        setPtr.data = newData;
+        setPtr.cap = initCap;
+        setPtr.count = 0u;
     }
 
     extend HashSet {
