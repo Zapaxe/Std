@@ -73,6 +73,10 @@ module Std::Io {
         Print(ToString(value));
     }
 
+    func Print(value: int) {
+        Print(ToString(value));
+    }
+
     func Print(value: float32) {
         Print(ToString(value));
     }
@@ -286,6 +290,11 @@ module Std::Io {
     }
 
     func PrintLine(value: uint64) {
+        Print(ToString(value));
+        PrintLine();
+    }
+
+    func PrintLine(value: int) {
         Print(ToString(value));
         PrintLine();
     }

@@ -15,16 +15,16 @@ module Std::HashSet {
         count: uint;
     }
 
-    func entryAddr(data: *uint8, index: uint, offset: uint) -> uint64 {
-        return data as uint64 + index * EntryBytes + offset;
+    func entryAddr(data: *uint8, index: uint, offset: uint) -> uint {
+        return data as uint + index * EntryBytes + offset;
     }
 
-    func readKey(data: *uint8, index: uint) -> uint64 {
-        return *(entryAddr(data, index, 0u) as *uint64);
+    func readKey(data: *uint8, index: uint) -> int {
+        return *(entryAddr(data, index, 0u) as *int);
     }
 
-    func writeKey(data: *uint8, index: uint, key: uint64) {
-        *(entryAddr(data, index, 0u) as *uint64) = key;
+    func writeKey(data: *uint8, index: uint, key: int) {
+        *(entryAddr(data, index, 0u) as *int) = key;
     }
 
     func isOccupied(data: *uint8, index: uint) -> bool {
@@ -35,15 +35,15 @@ module Std::HashSet {
         *(entryAddr(data, index, 8u) as *uint8) = occ as uint8;
     }
 
-    func hashKey(key: uint64) -> uint {
-        var h = key;
+    func hashKey(key: int) -> uint {
+        var h = key as uint;
         h = (h ^ (h >> 30)) * 0xBF58476D1CE4E5B9;
         h = (h ^ (h >> 27)) * 0x94D049BB133111EB;
         h = h ^ (h >> 31);
         return h;
     }
 
-    func findSlot(data: *uint8, cap: uint, key: uint64) -> uint {
+    func findSlot(data: *uint8, cap: uint, key: int) -> uint {
         let mask = cap - 1u;
         let h = hashKey(key);
         var idx = h & mask;
@@ -74,7 +74,7 @@ module Std::HashSet {
         Free(oldData as *opaque);
     }
 
-    func insertNoResize(data: *uint8, cap: uint, key: uint64) {
+    func insertNoResize(data: *uint8, cap: uint, key: int) {
         let idx = findSlot(data, cap, key);
         setOccupied(data, idx, true);
         writeKey(data, idx, key);
@@ -103,7 +103,7 @@ module Std::HashSet {
     }
 
     extend HashSet {
-        func Insert(self, key: uint64) {
+        func Insert(self, key: int) {
             if self.data == null { return; }
             if (self.count + 1u) * 8u > self.cap {
                 resize(self, self.cap * 2u);
@@ -116,13 +116,13 @@ module Std::HashSet {
             writeKey(self.data, idx, key);
         }
 
-        func Contains(self, key: uint64) -> bool {
+        func Contains(self, key: int) -> bool {
             if self.data == null { return false; }
             let idx = findSlot(self.data, self.cap, key);
             return isOccupied(self.data, idx) && readKey(self.data, idx) == key;
         }
 
-        func Remove(self, key: uint64) -> bool {
+        func Remove(self, key: int) -> bool {
             if self.data == null { return false; }
             let idx = findSlot(self.data, self.cap, key);
             if !isOccupied(self.data, idx) || readKey(self.data, idx) != key {
@@ -166,18 +166,18 @@ module Std::HashSet {
             return self.cap;
         }
 
-        func Keys(self) -> *uint64 {
+        func Keys(self) -> *int {
             if self.count == 0u { return null; }
-            let keys = Alloc(self.count * 8u + 8u) as *uint64;
+            let keys = Alloc(self.count * 8u + 8u) as *int;
             if keys == null { return null; }
             var pos: uint = 0u;
             var i: uint = 0u;
             while i < self.cap {
                 if isOccupied(self.data, i) {
-                    let keyAddr = entryAddr(self.data, i, 0u) as *uint64;
+                    let keyAddr = entryAddr(self.data, i, 0u) as *int;
                     let keyVal = *keyAddr;
                     let keyPtr = keys as *uint8 + pos * 8u;
-                    *(keyPtr as *uint64) = keyVal;
+                    *(keyPtr as *int) = keyVal;
                     pos += 1u;
                 }
                 i += 1u;

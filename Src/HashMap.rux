@@ -15,16 +15,16 @@ module Std::HashMap {
         count: uint;
     }
 
-    func entryAddr(data: *uint8, index: uint, offset: uint) -> uint64 {
-        return data as uint64 + index * EntryBytes + offset;
+    func entryAddr(data: *uint8, index: uint, offset: uint) -> uint {
+        return data as uint + index * EntryBytes + offset;
     }
 
-    func readKey(data: *uint8, index: uint) -> uint64 {
-        return *(entryAddr(data, index, 0u) as *uint64);
+    func readKey(data: *uint8, index: uint) -> int {
+        return *(entryAddr(data, index, 0u) as *int);
     }
 
-    func writeKey(data: *uint8, index: uint, key: uint64) {
-        *(entryAddr(data, index, 0u) as *uint64) = key;
+    func writeKey(data: *uint8, index: uint, key: int) {
+        *(entryAddr(data, index, 0u) as *int) = key;
     }
 
     func readValue(data: *uint8, index: uint) -> *opaque {
@@ -53,15 +53,15 @@ module Std::HashMap {
         }
     }
 
-    func hashKey(key: uint64) -> uint {
-        var h = key;
+    func hashKey(key: int) -> uint {
+        var h = key as uint;
         h = (h ^ (h >> 30)) * 0xBF58476D1CE4E5B9;
         h = (h ^ (h >> 27)) * 0x94D049BB133111EB;
         h = h ^ (h >> 31);
         return h;
     }
 
-    func findSlot(data: *uint8, cap: uint, key: uint64) -> uint {
+    func findSlot(data: *uint8, cap: uint, key: int) -> uint {
         let mask = cap - 1u;
         let h = hashKey(key);
         var idx = h & mask;
@@ -93,7 +93,7 @@ module Std::HashMap {
         Free(oldData as *opaque);
     }
 
-    func setNoResize(data: *uint8, cap: uint, key: uint64, value: *opaque) {
+    func setNoResize(data: *uint8, cap: uint, key: int, value: *opaque) {
         let idx = findSlot(data, cap, key);
         if !isOccupied(data, idx) {
             setOccupied(data, idx, true);
@@ -125,7 +125,7 @@ module Std::HashMap {
     }
 
     extend HashMap {
-        func Set(self, key: uint64, value: *opaque) {
+        func Set(self, key: int, value: *opaque) {
             if self.data == null { return; }
             if (self.count + 1u) * 8u > self.cap {
                 resize(self, self.cap * 2u);
@@ -139,7 +139,7 @@ module Std::HashMap {
             writeValue(self.data, idx, value);
         }
 
-        func Get(self, key: uint64) -> *opaque {
+        func Get(self, key: int) -> *opaque {
             if self.data == null { return null; }
             let idx = findSlot(self.data, self.cap, key);
             if isOccupied(self.data, idx) && readKey(self.data, idx) == key {
@@ -148,13 +148,13 @@ module Std::HashMap {
             return null;
         }
 
-        func Contains(self, key: uint64) -> bool {
+        func Contains(self, key: int) -> bool {
             if self.data == null { return false; }
             let idx = findSlot(self.data, self.cap, key);
             return isOccupied(self.data, idx) && readKey(self.data, idx) == key;
         }
 
-        func Remove(self, key: uint64) -> bool {
+        func Remove(self, key: int) -> bool {
             if self.data == null { return false; }
             let idx = findSlot(self.data, self.cap, key);
             if !isOccupied(self.data, idx) || readKey(self.data, idx) != key {
@@ -191,9 +191,9 @@ module Std::HashMap {
             self.cap = 0u;
         }
 
-        func Keys(self) -> *uint64 {
+        func Keys(self) -> *int {
             if self.count == 0u { return null; }
-            let keys = Alloc(self.count * 8u) as *uint64;
+            let keys = Alloc(self.count * 8u) as *int;
             if keys == null { return null; }
             var pos: uint = 0u;
             var i: uint = 0u;
