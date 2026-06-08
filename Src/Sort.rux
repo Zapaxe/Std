@@ -1,0 +1,333 @@
+/*
+    Rux standard library
+    Copyright 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+import Std::Memory::{ Alloc, Free };
+
+module Std::Sort {
+
+    // ─── Shared helpers ─────────────────────────────────────────
+
+    func sortSwap(arr: *uint64, i: uint, j: uint) {
+        let t = *(arr + i);
+        *(arr + i) = *(arr + j);
+        *(arr + j) = t;
+    }
+
+    func sort2(arr: *uint64, i: uint) {
+        if *(arr + i) > *(arr + i + 1u) { sortSwap(arr, i, i + 1u); }
+    }
+
+    func sort3(arr: *uint64, i: uint) {
+        if *(arr + i) > *(arr + i + 1u) { sortSwap(arr, i, i + 1u); }
+        if *(arr + i + 1u) > *(arr + i + 2u) { sortSwap(arr, i + 1u, i + 2u); }
+        if *(arr + i) > *(arr + i + 1u) { sortSwap(arr, i, i + 1u); }
+    }
+
+    func quadSwap(arr: *uint64, i: uint) {
+        if *(arr + i) > *(arr + i + 1u) { sortSwap(arr, i, i + 1u); }
+        if *(arr + i + 2u) > *(arr + i + 3u) { sortSwap(arr, i + 2u, i + 3u); }
+        if *(arr + i) > *(arr + i + 2u) { sortSwap(arr, i, i + 2u); }
+        if *(arr + i + 1u) > *(arr + i + 3u) { sortSwap(arr, i + 1u, i + 3u); }
+        if *(arr + i + 1u) > *(arr + i + 2u) { sortSwap(arr, i + 1u, i + 2u); }
+    }
+
+    func sortMerge(arr: *uint64, temp: *uint64, left: uint, mid: uint, right: uint) {
+        let n1 = mid - left;
+        let n2 = right - mid;
+        var i: uint = 0u;
+        var j: uint = 0u;
+        var k: uint = 0u;
+
+        while i < n1 && j < n2 {
+            if *(arr + left + i) <= *(arr + mid + j) {
+                *(temp + k) = *(arr + left + i);
+                i += 1u;
+            } else {
+                *(temp + k) = *(arr + mid + j);
+                j += 1u;
+            }
+            k += 1u;
+        }
+
+        while i < n1 {
+            *(temp + k) = *(arr + left + i);
+            i += 1u;
+            k += 1u;
+        }
+
+        while j < n2 {
+            *(temp + k) = *(arr + mid + j);
+            j += 1u;
+            k += 1u;
+        }
+
+        i = 0u;
+        while i < k {
+            *(arr + left + i) = *(temp + i);
+            i += 1u;
+        }
+    }
+
+    // ─── Quadsort ───────────────────────────────────────────────
+
+    func quadsort(arr: *uint64, len: uint) {
+        if len < 2u { return; }
+        if len == 2u { sort2(arr, 0u); return; }
+        if len == 3u { sort3(arr, 0u); return; }
+
+        let temp = Alloc(len * 8u) as *uint64;
+        if temp == null { return; }
+
+        var i: uint = 0u;
+        while i + 4u <= len {
+            quadSwap(arr, i);
+            i += 4u;
+        }
+
+        let tail = len - i;
+        if tail == 2u { sort2(arr, i); }
+        else if tail == 3u { sort3(arr, i); }
+
+        var width = 4u;
+        while width < len {
+            var start: uint = 0u;
+            while start < len {
+                let mid = start + width;
+                if mid >= len { break; }
+                let end = start + width * 2u;
+                let rightEnd = end < len ? end : len;
+
+                if *(arr + mid - 1u) > *(arr + mid) {
+                    sortMerge(arr, temp, start, mid, rightEnd);
+                }
+
+                start = end;
+            }
+            width *= 2u;
+        }
+
+        Free(temp as *opaque);
+    }
+
+    // ─── Piposort ───────────────────────────────────────────────
+
+    func oddevenSort(arr: *uint64, len: uint) {
+        if len < 2u { return; }
+        var sorted = false;
+        while !sorted {
+            sorted = true;
+            var start = 0u;
+            var i = start;
+            while i + 1u < len {
+                if *(arr + i) > *(arr + i + 1u) {
+                    sortSwap(arr, i, i + 1u);
+                    sorted = false;
+                }
+                i += 2u;
+            }
+            start = 1u;
+            i = start;
+            while i + 1u < len {
+                if *(arr + i) > *(arr + i + 1u) {
+                    sortSwap(arr, i, i + 1u);
+                    sorted = false;
+                }
+                i += 2u;
+            }
+        }
+    }
+
+    func mergeTo(from: *uint64, dest: *uint64, left: uint, mid: uint, right: uint) {
+        let a = from;
+        let b = dest;
+        let lo = left;
+        let m = mid;
+        let hi = right;
+        var i: uint = lo;
+        var j: uint = m;
+        var k: uint = 0u;
+        while i < m && j < hi {
+            if *(a + i) <= *(a + j) {
+                *(b + k) = *(a + i);
+                i += 1u;
+            } else {
+                *(b + k) = *(a + j);
+                j += 1u;
+            }
+            k += 1u;
+        }
+        while i < m {
+            *(b + k) = *(a + i);
+            i += 1u; k += 1u;
+        }
+        while j < hi {
+            *(b + k) = *(a + j);
+            j += 1u; k += 1u;
+        }
+    }
+
+    func rotate(arr: *uint64, swap: *uint64, left: uint, right: uint) {
+        var i: uint = 0u;
+        while i < left {
+            *(swap + i) = *(arr + i);
+            i += 1u;
+        }
+        i = 0u;
+        while i < right {
+            *(arr + i) = *(arr + left + i);
+            i += 1u;
+        }
+        i = 0u;
+        while i < left {
+            *(arr + right + i) = *(swap + i);
+            i += 1u;
+        }
+    }
+
+    func piposort(arr: *uint64, swap: *uint64, len: uint) {
+        if len <= 7u {
+            oddevenSort(arr, len);
+            return;
+        }
+
+        let half1 = len / 2u;
+        let quad1 = half1 / 2u;
+        let quad2 = half1 - quad1;
+        let half2 = len - half1;
+        let quad3 = half2 / 2u;
+        let quad4 = half2 - quad3;
+
+        piposort(arr, swap, quad1);
+        piposort(arr + quad1, swap, quad2);
+        piposort(arr + half1, swap, quad3);
+        piposort(arr + half1 + quad3, swap, quad4);
+
+        if *(arr + quad1 - 1u) <= *(arr + quad1) &&
+           *(arr + half1 - 1u) <= *(arr + half1) &&
+           *(arr + half1 + quad3 - 1u) <= *(arr + half1 + quad3) {
+            return;
+        }
+
+        if *(arr) > *(arr + half1 - 1u) &&
+           *(arr + quad1) > *(arr + half1 + quad3 - 1u) &&
+           *(arr + half1) > *(arr + len - 1u) {
+            rotate(arr, swap, quad1, quad2 + half2);
+            rotate(arr, swap, quad2, half2);
+            rotate(arr, swap, quad3, quad4);
+            return;
+        }
+
+        mergeTo(arr, swap, 0u, quad1, half1);
+        mergeTo(arr, swap + half1, half1, half1 + quad3, len);
+        mergeTo(swap, arr, 0u, half1, len);
+    }
+
+    func piposortAlloc(arr: *uint64, len: uint) {
+        let swap = Alloc(len * 8u) as *uint64;
+        if swap == null {
+            quadsort(arr, len);
+            return;
+        }
+        piposort(arr, swap, len);
+        Free(swap as *opaque);
+    }
+
+    // ─── Crumsort ───────────────────────────────────────────────
+
+    func crumPartition(arr: *uint64, left: uint, right: uint, pivotIdx: uint) -> uint {
+        let pivot = *(arr + pivotIdx);
+        let last = right - 1u;
+        sortSwap(arr, pivotIdx, last);
+
+        var i = left;
+        var j = last - 1u;
+
+        while true {
+            while i <= j && *(arr + i) < pivot { i += 1u; }
+            while i <= j && *(arr + j) > pivot { j -= 1u; }
+            if i >= j { break; }
+            sortSwap(arr, i, j);
+            i += 1u;
+            j -= 1u;
+        }
+
+        sortSwap(arr, i, last);
+        return i;
+    }
+
+    func crumsort(arr: *uint64, left: uint, right: uint) {
+        let len = right - left;
+        if len < 2u { return; }
+
+        if len <= 64u {
+            quadsort(arr + left, len);
+            return;
+        }
+
+        let mid = left + len / 2u;
+        let lo = left;
+        let hi = right - 1u;
+
+        if *(arr + lo) > *(arr + mid) { sortSwap(arr, lo, mid); }
+        if *(arr + mid) > *(arr + hi) { sortSwap(arr, mid, hi); }
+        if *(arr + lo) > *(arr + mid) { sortSwap(arr, lo, mid); }
+
+        let pivotIdx = mid;
+        let p = crumPartition(arr, left, right, pivotIdx);
+
+        if p - left < right - (p + 1u) {
+            crumsort(arr, left, p);
+            crumsort(arr, p + 1u, right);
+        } else {
+            crumsort(arr, p + 1u, right);
+            crumsort(arr, left, p);
+        }
+    }
+
+    // ─── Public API ─────────────────────────────────────────────
+
+    func QuadsortUint64(arr: *uint64, len: uint) {
+        quadsort(arr, len);
+    }
+
+    func PiposortUint64(arr: *uint64, len: uint) {
+        piposortAlloc(arr, len);
+    }
+
+    func CrumsortUint64(arr: *uint64, len: uint) {
+        if len < 2u { return; }
+        crumsort(arr, 0u, len);
+    }
+
+    func SortUint64(arr: *uint64, len: uint) {
+        if len <= 128u {
+            quadsort(arr, len);
+        } else {
+            crumsort(arr, 0u, len);
+        }
+    }
+
+    func Quadsort(arr: *int, len: uint) {
+        quadsort(arr as *uint64, len);
+    }
+
+    func Piposort(arr: *int, len: uint) {
+        piposortAlloc(arr as *uint64, len);
+    }
+
+    func Crumsort(arr: *int, len: uint) {
+        if len < 2u { return; }
+        crumsort(arr as *uint64, 0u, len);
+    }
+
+    func Sort(arr: *int, len: uint) {
+        if len <= 128u {
+            quadsort(arr as *uint64, len);
+        } else {
+            crumsort(arr as *uint64, 0u, len);
+        }
+    }
+}
