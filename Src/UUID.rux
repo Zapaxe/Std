@@ -1,0 +1,214 @@
+/*
+    Rux standard library
+    Copyright © 2026 Rux Contributors
+    Licensed under the MIT License
+*/
+
+import Std::Memory::{ Alloc, Free };
+import Std::Time::{ TickMs };
+
+module Std::UUID {
+    func uuidXorshift(seed: uint64) -> uint64 {
+        var x = seed;
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        return x * 2685821657736338717;
+    }
+
+    func uuidNibble(b: uint8) -> char8 {
+        return (b < 10u8 ? (48u8 + b) : (87u8 + b)) as char8;
+    }
+
+    func UuidV4() -> String {
+        var bytes: uint8[16];
+        var s = TickMs();
+        var i: uint = 0u;
+        while i < 16u {
+            if i % 8u == 0u {
+                s = uuidXorshift(s);
+            }
+            bytes[i] = ((s >> ((i % 8u) * 8u)) & 0xFFu64) as uint8;
+            i += 1u;
+        }
+
+        bytes[6] = (bytes[6] & 0x0Fu8) | 0x40u8;
+        bytes[8] = (bytes[8] & 0x3Fu8) | 0x80u8;
+
+        let outLen: uint = 36u;
+        let out = Alloc(outLen) as *char8;
+        if out == null {
+            return String::New();
+        }
+
+        var pos: uint = 0u;
+        var j: uint = 0u;
+        while j < 16u {
+            if j == 4u || j == 6u || j == 8u || j == 10u {
+                *(out + pos) = '-' as char8;
+                pos += 1u;
+            }
+            let b = bytes[j];
+            *(out + pos) = uuidNibble((b >> 4) & 0x0Fu8);
+            pos += 1u;
+            *(out + pos) = uuidNibble(b & 0x0Fu8);
+            pos += 1u;
+            j += 1u;
+        }
+
+        return String { data: out, length: outLen };
+    }
+
+    func UuidV4Bytes() -> String {
+        var bytes: uint8[16];
+        var s = TickMs();
+        var i: uint = 0u;
+        while i < 16u {
+            if i % 8u == 0u {
+                s = uuidXorshift(s);
+            }
+            bytes[i] = ((s >> ((i % 8u) * 8u)) & 0xFFu64) as uint8;
+            i += 1u;
+        }
+
+        bytes[6] = (bytes[6] & 0x0Fu8) | 0x40u8;
+        bytes[8] = (bytes[8] & 0x3Fu8) | 0x80u8;
+
+        let out = Alloc(16u) as *uint8;
+        if out == null {
+            return String::New();
+        }
+
+        var k: uint = 0u;
+        while k < 16u {
+            *(out + k) = bytes[k];
+            k += 1u;
+        }
+
+        return String { data: out as *char8, length: 16u };
+    }
+
+    func UuidToString(bytes: *const uint8, length: uint) -> String {
+        if length < 16u {
+            return String::New();
+        }
+
+        let outLen: uint = 36u;
+        let out = Alloc(outLen) as *char8;
+        if out == null {
+            return String::New();
+        }
+
+        var pos: uint = 0u;
+        var i: uint = 0u;
+        while i < 16u {
+            if i == 4u || i == 6u || i == 8u || i == 10u {
+                *(out + pos) = '-' as char8;
+                pos += 1u;
+            }
+            let b = *(bytes + i);
+            *(out + pos) = uuidNibble((b >> 4) & 0x0Fu8);
+            pos += 1u;
+            *(out + pos) = uuidNibble(b & 0x0Fu8);
+            pos += 1u;
+            i += 1u;
+        }
+
+        return String { data: out, length: outLen };
+    }
+
+    func UuidParse(str: char8[]) -> String {
+        return UuidParse(str.data, str.length);
+    }
+
+    func UuidParse(str: *const char8, length: uint) -> String {
+        if length != 36u {
+            Fatal("uuid input must be 36 characters");
+        }
+
+        var i: uint = 0u;
+        while i < 36u {
+            if i == 8u || i == 13u || i == 18u || i == 23u {
+                if *(str + i) != '-' as char8 {
+                    Fatal("uuid input has invalid hyphen position");
+                }
+            } else {
+                let c = *(str + i);
+                if !((c >= c8'0' && c <= c8'9') || (c >= c8'a' && c <= c8'f') || (c >= c8'A' && c <= c8'F')) {
+                    Fatal("uuid input contains invalid hex characters");
+                }
+            }
+            i += 1u;
+        }
+
+        let out = Alloc(16u) as *uint8;
+        if out == null {
+            return String::New();
+        }
+
+        var pos: uint = 0u;
+        var j: uint = 0u;
+        while j < 36u {
+            if j == 8u || j == 13u || j == 18u || j == 23u {
+                j += 1u;
+                continue;
+            }
+            let hi = *(str + j);
+            let lo = *(str + j + 1u);
+            let hiVal = (hi >= c8'a' ? (hi as int - 87) : (hi >= c8'A' ? (hi as int - 55) : (hi as int - 48)));
+            let loVal = (lo >= c8'a' ? (lo as int - 87) : (lo >= c8'A' ? (lo as int - 55) : (lo as int - 48)));
+            *(out + pos) = ((hiVal as uint8) << 4 | (loVal as uint8)) as uint8;
+            pos += 1u;
+            j += 2u;
+        }
+
+        return String { data: out as *char8, length: 16u };
+    }
+
+    func IsValidUuid(str: char8[]) -> bool {
+        return IsValidUuid(str.data, str.length);
+    }
+
+    func IsValidUuid(str: *const char8, length: uint) -> bool {
+        if length != 36u {
+            return false;
+        }
+
+        var i: uint = 0u;
+        while i < 36u {
+            if i == 8u || i == 13u || i == 18u || i == 23u {
+                if *(str + i) != '-' as char8 {
+                    return false;
+                }
+            } else {
+                let c = *(str + i);
+                if !((c >= c8'0' && c <= c8'9') || (c >= c8'a' && c <= c8'f') || (c >= c8'A' && c <= c8'F')) {
+                    return false;
+                }
+            }
+            i += 1u;
+        }
+
+        return true;
+    }
+
+    func UuidNil() -> String {
+        let outLen: uint = 36u;
+        let out = Alloc(outLen) as *char8;
+        if out == null {
+            return String::New();
+        }
+
+        var i: uint = 0u;
+        while i < outLen {
+            if i == 8u || i == 13u || i == 18u || i == 23u {
+                *(out + i) = '-' as char8;
+            } else {
+                *(out + i) = '0' as char8;
+            }
+            i += 1u;
+        }
+
+        return String { data: out, length: outLen };
+    }
+}
