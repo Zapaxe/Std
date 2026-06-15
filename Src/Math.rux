@@ -142,10 +142,84 @@ module Std::Math {
         return guess;
     }
 
-    func Pow(base: float64, exponent: float64) -> float64
+    func ln64(x: float64) -> float64
     {
-        // Placeholder implementation
-        return 0.0;
+        if x <= 0.0 { return 0.0; }
+        if x == 1.0 { return 0.0; }
+        var k: int = 0;
+        var r = x;
+        while r >= 2.0 {
+            r /= 2.0;
+            k += 1;
+        }
+        while r < 1.0 {
+            r *= 2.0;
+            k -= 1;
+        }
+        if r > Sqrt2() {
+            r /= Sqrt2();
+            k += 1;
+        }
+        let z = (r - 1.0) / (r + 1.0);
+        let z2 = z * z;
+        var sum = z;
+        var term = z;
+        var n: uint = 1u;
+        while n < 18u {
+            term *= z2;
+            sum += term / ((2u * n + 1u) as float64);
+            n += 1u;
+        }
+        return (k as float64) * Ln2() + 2.0 * sum;
+    }
+
+    func exp64(x: float64) -> float64
+    {
+        let k = (x / Ln2()) as int;
+        var r = x - (k as float64) * Ln2();
+        var sum = 1.0;
+        var term = 1.0;
+        var n: uint = 1u;
+        while n < 18u {
+            term *= r / (n as float64);
+            sum += term;
+            n += 1u;
+        }
+        var result = sum;
+        if k >= 0 {
+            var i: int = 0;
+            while i < k {
+                result *= 2.0;
+                i += 1;
+            }
+        } else {
+            var i: int = 0;
+            while i < -k {
+                result /= 2.0;
+                i += 1;
+            }
+        }
+        return result;
+    }
+
+    func Pow(x: float64, y: float64) -> float64
+    {
+        if y == 0.0 { return 1.0; }
+        if x == 0.0 { return 0.0; }
+        if x == 1.0 { return 1.0; }
+        if y == 1.0 { return x; }
+        if x < 0.0 {
+            let yi = y as int;
+            if y == yi as float64 {
+                let abs = Pow(-x, y);
+                if (yi & 1) != 0 {
+                    return -abs;
+                }
+                return abs;
+            }
+            return 0.0;
+        }
+        return exp64(y * ln64(x));
     }
 
     func Abs64(x: float64) -> float64
@@ -209,33 +283,44 @@ module Std::Math {
 
     func Floor(x: float64) -> float64
     {
+        if x == 0.0 && 1.0 / x < 0.0 { return -0.0; }
         let t = x as int;
-        if x >= 0.0 || x == t as float64 {
-            return t as float64;
+        let f = t as float64;
+        if f > x {
+            return (t - 1) as float64;
         }
-        return (t - 1) as float64;
+        return f;
     }
 
     func Ceil(x: float64) -> float64
     {
+        if x == 0.0 && 1.0 / x < 0.0 { return -0.0; }
         let t = x as int;
-        if x <= 0.0 || x == t as float64 {
-            return t as float64;
+        let f = t as float64;
+        if f < x {
+            return (t + 1) as float64;
         }
-        return (t + 1) as float64;
+        return f;
     }
 
     func Round(x: float64) -> float64
     {
         let t = x as int;
-        let frac = x - t as float64;
-        if frac >= 0.5 {
+        let f = t as float64;
+        let frac = x - f;
+        if frac > 0.5 {
             return (t + 1) as float64;
         }
-        if frac <= -0.5 {
+        if frac < -0.5 {
             return (t - 1) as float64;
         }
-        return t as float64;
+        if frac == 0.5 || frac == -0.5 {
+            if (t & 1) != 0 {
+                if frac > 0.0 { return (t + 1) as float64; }
+                return (t - 1) as float64;
+            }
+        }
+        return f;
     }
 
     func Sqrt32(x: float32) -> float32
@@ -243,9 +328,9 @@ module Std::Math {
         return Sqrt(x as float64) as float32;
     }
 
-    func Pow(base: float32, exponent: float32) -> float32
+    func Pow32(x: float32, y: float32) -> float32
     {
-        return 0.0f32; // Placeholder implementation
+        return Pow(x as float64, y as float64) as float32;
     }
 
     func Abs32(x: float32) -> float32
