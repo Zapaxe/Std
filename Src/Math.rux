@@ -209,20 +209,33 @@ module Std::Math {
 
     func Floor(x: float64) -> float64
     {
-        // Placeholder implementation
-        return 0.0;
+        let t = x as int;
+        if x >= 0.0 || x == t as float64 {
+            return t as float64;
+        }
+        return (t - 1) as float64;
     }
 
     func Ceil(x: float64) -> float64
     {
-        // Placeholder implementation
-        return 0.0;
+        let t = x as int;
+        if x <= 0.0 || x == t as float64 {
+            return t as float64;
+        }
+        return (t + 1) as float64;
     }
 
     func Round(x: float64) -> float64
     {
-        // Placeholder implementation
-        return 0.0;
+        let t = x as int;
+        let frac = x - t as float64;
+        if frac >= 0.5 {
+            return (t + 1) as float64;
+        }
+        if frac <= -0.5 {
+            return (t - 1) as float64;
+        }
+        return t as float64;
     }
 
     func Sqrt32(x: float32) -> float32
@@ -240,13 +253,18 @@ module Std::Math {
         return x < 0.0f32 ? -x : x;
     }
 
-    func Floor(x: float32) -> float32
+    func Floor32(x: float32) -> float32
     {
-        return 0.0f32; // Placeholder implementation
+        return Floor(x as float64) as float32;
     }
 
-    func Ceil(x: float32) -> float32
+    func Ceil32(x: float32) -> float32
     {
-        return 0.0f32; // Placeholder implementation
+        return Ceil(x as float64) as float32;
+    }
+
+    func Round32(x: float32) -> float32
+    {
+        return Round(x as float64) as float32;
     }
 }
